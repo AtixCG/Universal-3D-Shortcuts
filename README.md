@@ -13,7 +13,8 @@ The document containing the list of keyboard shortcuts can be used as a Command 
 
 ## Download
 
-S
+* :floppy_disk: [Latest Version](https://github.com/AtixCG/Universal-3D-Shortcuts/releases/latest)
+* :page_facing_up:	[Commands & Shortcuts List](https://github.com/AtixCG/Universal-3D-Shortcuts/blob/main/Universal%203D%20Shortcuts.pdf)
 
 ## Possible Issues
 
