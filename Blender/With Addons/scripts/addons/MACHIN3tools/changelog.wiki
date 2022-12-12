@@ -1,0 +1,47 @@
+
+
+
+* add SelectHierarchy tool
+	- optionally and by default select children recursively
+	- optionally unhide them too
+	
+* MaterialPicker tool
+	- fix assign mode due to Blender's drawing functions no longer receiving an updated event prop
+	- fix exception when assigning material to objects without a data block
+
+* SmartVert tool
+	- fix rare exception when connecing paths
+
+* Mirror tool
+	- fix removal issue, where mirror object mislagnment wasn't recognized
+
+* AssetBrowser tools
+	- fix op bl_idname in sidebar panel
+
+* Filebrowser tools
+	- fix issue with keymaps not unregistering
+
+* Asset Drops
+	- check if MESHmachine or DECALmachine are actually installed before attempting to unlink stash objects or decal backups
+
+* Customize tool
+	- customize workspace pie
+	
+
+* Shading Pie 
+	- Object Axes Drawing
+		- optionally draw it at fixed screen-space size
+		- lower default axes size to 0.1 and alpha to 0.5
+		- fix exception when object becomes invalid
+		- fix exection when context.visible_object
+	- add Denoise toggle in Cycles settings
+
+* Save Pie
+	- support toggling obj/fbx/usd import/export
+	- support Blender's experimental obj import/export
+
+* Cursor/Origin Pie
+	- CursorToSelected tool
+		- disable setting Cursor Orientation preset by default (addon preferences)
+
+* various, ongoing HyperCursor integrations
