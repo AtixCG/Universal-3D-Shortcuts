@@ -22,7 +22,7 @@ The document containing the list of keyboard shortcuts can be used as a Command 
 
 ## Possible Issues
 
-This project was made and tested by me alone, so mistakes are possible. The most complex and problematic integration of hotkeys was in Blender, so the probability of problems there is the highest. 
+This project was made and tested by me alone, so mistakes are possible. The most complex and problematic integration of hotkeys was in Blender, so the probability of errors there is the highest. 
 
 The keyboard shortcuts are tested on the following program versions:
 * Maya 2023.2
