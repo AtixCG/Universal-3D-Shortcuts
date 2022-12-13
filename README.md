@@ -1,6 +1,7 @@
 <img width="1009" alt="Universal 3D Shortcuts" src="https://user-images.githubusercontent.com/112505578/207167305-13273872-59d7-4095-b2d2-735ed4c38b28.png">
 
-Universal 3D Shortcuts are designed to unify the experience with 3D programs and allow you to focus on solving a problem without the distraction of changing programs. No matter which one you use, you'll have the same navigation and keyboard shortcuts. Where possible, the original hotkeys have not been changed. For each program 200-300 keyboard shortcuts have been considered/changed.
+To put it simply, Universal 3D Shortcuts is keyboard shortcuts presets for several programs. However, they also include scripts and plugins. And the number of considered/changed keyboard shortcuts for **each** program is 200-300. Shortcuts are designed to unify the experience with 3D programs and allow you to focus on solving a problem without the distraction of changing programs. No matter which one you use, you'll have the same navigation and keyboard shortcuts. Where possible, the original hotkeys have not been changed.
+
 
 >⚡️Currently supported: Blender, Maya, Cinema 4D
 
