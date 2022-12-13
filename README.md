@@ -36,14 +36,14 @@ The keyboard shortcuts are tested on the following program versions:
 ## Installation
 
 ### Maya
-1. Copy the files in the "Marking Menus" folder and paste them to `Documents\maya\YOUR MAYA VERSION\prefs\markingMenus`
+1. Copy files in downloaded "Marking Menus" folder and paste them to `Documents\maya\YOUR MAYA VERSION\prefs\markingMenus`
 2. In Maya go to: Windows -> Settings/Preferences -> Hotkey Editor
 3. Click on ![setting](https://user-images.githubusercontent.com/112505578/207167397-4e52a0c5-6911-41f6-9bcc-382b6932c21c.png)
  icon and then "Import"
 4. Select "Universal.mhk" in downloaded folder
 
 ### Cinema 4D
-1. Copy all files in downloaded Scripts folder and paste them to: 
+1.Copy files in downloaded "Scripts" folder and paste them to: 
 `%AppData%\Maxon\YOUR CINEMA 4D VERSION\library\scripts`
 2. (Optional) Install [Drop to Floor](https://www.alphapixel.net/drop-to-floor/) by Alpha Pixel
 3. In Cinema4D go to: Windows -> Command Manager -> File -> Load
