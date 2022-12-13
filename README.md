@@ -31,7 +31,7 @@ This project was made and tested by me alone, so mistakes are possible. The most
 The keyboard shortcuts are tested on the following program versions:
 * Maya 2023.2
 * Cinema 4D 2023
-* Blender 3.4
+* Blender 3.4 (probably won't work on older versions)
 
 
 ## Installation
