@@ -11,7 +11,7 @@ Universal 3D Shortcuts are designed to unify the experience with 3D programs and
 
 ## Command Reference & Customization
 
-The document containing the list of keyboard shortcuts can be used as a Command Reference to find the same command between 3D programs. If you don't like the navigation or any keyboard shortcuts, you can easily change them in each program. 
+The document containing the list of keyboard shortcuts can be used as a Command Reference to find the same command between 3D programs. If you don't like navigation or any keyboard shortcuts, you can easily change them in each program. 
 
 
 ## Download
