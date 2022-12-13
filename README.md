@@ -1,25 +1,24 @@
 <img width="1009" alt="Universal 3D Shortcuts" src="https://user-images.githubusercontent.com/112505578/207167305-13273872-59d7-4095-b2d2-735ed4c38b28.png">
 
-
-
-
 Universal 3D Shortcuts are designed to unify the experience with 3D programs and allow you to focus on solving a problem without the distraction of changing programs. No matter which one you use, you'll have the same navigation and keyboard shortcuts. Where possible, the original hotkeys have not been changed. For each program 200-300 keyboard shortcuts have been considered/changed.
 
 >⚡️Currently supported: Blender, Maya, Cinema 4D
-
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/112505578/207413410-fce9709a-475e-4a31-9e4d-874895df218a.gif">
 </p>
 
-## Command Reference
 
-The document containing the list of keyboard shortcuts can be used as a Command Reference to find the same command between 3D programs.
+## Command Reference & Customization
+
+The document containing the list of keyboard shortcuts can be used as a Command Reference to find the same command between 3D programs. If you don't like the navigation or any keyboard shortcuts, you can easily change them in each program. 
+
 
 ## Download
 
 * :floppy_disk: [Latest Version](https://github.com/AtixCG/Universal-3D-Shortcuts/releases/latest)
 * :page_facing_up:	[Commands & Shortcuts List](https://github.com/AtixCG/Universal-3D-Shortcuts/blob/main/Universal%203D%20Shortcuts.pdf)
+
 
 ## Possible Issues
 
@@ -29,6 +28,7 @@ The keyboard shortcuts are tested on the following program versions:
 * Maya 2023.2
 * Cinema 4D 2023
 * Blender 3.4
+
 
 ## Installation
 
@@ -101,3 +101,7 @@ Delete|X
 Hide|H
 Clean Up|Shift-Alt-D
 Separate|Ctrl-Alt-Shift-S
+
+
+## Development 
+:heart: Appreciate any feedback and suggestions
