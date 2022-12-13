@@ -7,6 +7,11 @@ Universal 3D Shortcuts are designed to unify the experience with 3D programs and
 
 >⚡️Currently supported: Blender, Maya, Cinema 4D
 
+
+<p align="center">
+<img src="https://user-images.githubusercontent.com/112505578/207413410-fce9709a-475e-4a31-9e4d-874895df218a.gif">
+</p>
+
 ## Command Reference
 
 The document containing the list of keyboard shortcuts can be used as a Command Reference to find the same command between 3D programs.
