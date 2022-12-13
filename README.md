@@ -14,6 +14,10 @@ Universal 3D Shortcuts are designed to unify the experience with 3D programs and
 The document containing the list of keyboard shortcuts can be used as a Command Reference to find the same command between 3D programs. If you don't like navigation or any keyboard shortcuts, you can easily change them in each program. 
 
 
+<p align="center">
+<img src="https://user-images.githubusercontent.com/112505578/207439592-6d444021-f2ba-48d1-b7a4-abcf65098026.gif" width= "100%">
+</p>
+
 ## Download
 
 * :floppy_disk: [Latest Version](https://github.com/AtixCG/Universal-3D-Shortcuts/releases/latest)
