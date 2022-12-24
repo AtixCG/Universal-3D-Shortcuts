@@ -79,9 +79,9 @@ The version with addons contains the following addons:
 * [Toggle Hide](https://github.com/K-410/blender-scripts/blob/master/2.8/toggle_hide.py) by K-410
 * [X-Ray Selection](https://blenderartists.org/t/x-ray-selection-tools/1212316) Tools by Cirno 
 
-> Note: If you are the developer of any of these addons and do not want it to be used, please contact me.
+> Note: If you are the developer of any of these add-ons and do not wish for them to be used, please reach out to me.
 #### Updating Addons
-You can install updates for addons, but you will probably need to configure the associated hotkeys.
+You can update add-ons, but you may need to configure their corresponding keyboard shortcuts in order for them to function properly.
 
 ### Without Addons
 **:x: The following commands and keyboard shortcuts are missing in the version without addons:**
