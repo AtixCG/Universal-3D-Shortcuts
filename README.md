@@ -108,4 +108,4 @@ Separate|Ctrl-Alt-Shift-S
 
 
 ## Development 
-:heart: Appreciate any feedback and suggestions
+:heart: Appreciate any feedback and suggestions. Now I am looking for a way to make keyboard shortcuts available in a wider range of Blender versions and any help is welcome :sparkles:
