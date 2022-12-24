@@ -1,6 +1,6 @@
 <img width="1009" alt="Universal 3D Shortcuts" src="https://user-images.githubusercontent.com/112505578/207167305-13273872-59d7-4095-b2d2-735ed4c38b28.png">
 
-To put it simply, Universal 3D Shortcuts is keyboard shortcuts presets for several programs. However, they also include scripts and plugins. And the number of considered/changed keyboard shortcuts for **each** program is 200-300. Shortcuts are designed to unify the experience with 3D programs and allow you to focus on solving a problem without the distraction of changing programs. No matter which one you use, you'll have the same navigation and keyboard shortcuts. Where possible, the original hotkeys have not been changed.
+Universal 3D Shortcuts is a collection of keyboard shortcuts, scripts, and plugins designed to unify your experience with 3D programs. With over 200-300 modified/considered keyboard shortcuts **per program**, Universal 3D Shortcuts aims to unify the navigation and hotkeys of various 3D programs, allowing you to focus on your work without the distraction of switching between different interfaces. Whenever possible, the original hotkeys are preserved to minimize disruption to your workflow. 
 
 
 >⚡️Currently supported: Blender, Maya, Cinema 4D
@@ -12,7 +12,7 @@ To put it simply, Universal 3D Shortcuts is keyboard shortcuts presets for sever
 
 ## Command Reference & Customization
 
-The document containing the list of keyboard shortcuts can be used as a Command Reference to find the same command between 3D programs. If you don't like navigation or any keyboard shortcuts, you can easily change them in each program. 
+The document containing the list of keyboard shortcuts can be used as a command reference to find the same command across different 3D programs. Additionally, if you prefer to customize your own navigation or keyboard shortcuts, you can easily change them in each program to better suit your workflow.
 
 <p align="center">
 <img src="https://user-images.githubusercontent.com/112505578/207441062-69beead0-ad7b-4a54-80a5-f05814fd57b5.gif" width= "100%">
