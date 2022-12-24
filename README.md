@@ -44,7 +44,7 @@ The keyboard shortcuts are tested on the following program versions:
 4. Select "Universal.mhk" in downloaded folder
 
 ### Cinema 4D
-1.Copy files in downloaded "Scripts" folder and paste them to: 
+1. Copy files in downloaded "Scripts" folder and paste them to: 
 `%AppData%\Maxon\YOUR CINEMA 4D VERSION\library\scripts`
 2. (Optional) Install [Drop to Floor](https://www.alphapixel.net/drop-to-floor/) by Alpha Pixel
 3. In Cinema4D go to: Windows -> Command Manager -> File -> Load
