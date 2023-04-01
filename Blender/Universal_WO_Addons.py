@@ -10719,6 +10719,12 @@ keyconfig_data = \
   ),
  ]
 
+# Replace key on mac
+import sys, os
+path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(path)
+from mac_utilities import optimize_for_mac
+optimize_for_mac(keyconfig_data)
 
 if __name__ == "__main__":
     # Only add keywords that are supported.
@@ -10726,7 +10732,7 @@ if __name__ == "__main__":
     keywords = {}
     if blender_version >= (2, 92, 0):
         keywords["keyconfig_version"] = keyconfig_version
-    import os
+
     from bl_keymap_utils.io import keyconfig_import_from_data
     keyconfig_import_from_data(
         os.path.splitext(os.path.basename(__file__))[0],
