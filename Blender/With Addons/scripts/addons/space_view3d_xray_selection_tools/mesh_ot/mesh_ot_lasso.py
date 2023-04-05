@@ -1,19 +1,38 @@
+import time
+from math import hypot
+from struct import pack
+
 import bpy
 import gpu
-import time
-from struct import pack
-from math import hypot
-from mathutils import Vector
+from bgl import (
+    glEnable,
+    glDisable,
+    glClear,
+    glLineWidth,
+    glColorMask,
+    glStencilOp,
+    glStencilMask,
+    glStencilFunc,
+    GL_FALSE,
+    GL_TRUE,
+    GL_ALWAYS,
+    GL_EQUAL,
+    GL_KEEP,
+    GL_INVERT,
+    GL_STENCIL_BUFFER_BIT,
+    GL_STENCIL_TEST,
+    GL_BLEND,
+)
 from gpu_extras.batch import batch_for_shader
-from bgl import glEnable, glDisable, glClear, glLineWidth, glColorMask, glStencilOp, glStencilMask, glStencilFunc, \
-    GL_FALSE, GL_TRUE, GL_ALWAYS, GL_EQUAL, GL_KEEP, GL_INVERT, GL_STENCIL_BUFFER_BIT, GL_STENCIL_TEST, GL_BLEND
-from ..functions.mesh_modal import *
+from mathutils import Vector
+
 from ..icon.lasso_cursor import lasso_cursor
 from ..functions.mesh_intersect import select_mesh_elems
+from ..functions.mesh_modal import *
 from ..functions.polygon_tests import polygon_bbox
 
 
-icon_vertex_shader = '''
+ICON_VERTEX_SHADER = '''
     in vec2 pos;
 
     uniform mat4 u_ViewProjectionMatrix;
@@ -27,7 +46,7 @@ icon_vertex_shader = '''
         pos.y * u_Scale + u_Y, 0.0f, 1.0f); 
     } 
 '''
-icon_fragment_shader = '''
+ICON_FRAGMENT_SHADER = '''
     out vec4 fragColor;
 
     uniform vec4 u_SegmentColor;
@@ -37,7 +56,7 @@ icon_fragment_shader = '''
         fragColor = u_SegmentColor;
     }
 '''
-fill_vertex_shader = '''
+FILL_VERTEX_SHADER = '''
     in vec2 pos;
 
     uniform mat4 u_ViewProjectionMatrix;
@@ -47,7 +66,7 @@ fill_vertex_shader = '''
         gl_Position = u_ViewProjectionMatrix * vec4(pos.x, pos.y, 0.0f, 1.0f);
     }
 '''
-fill_fragment_shader = '''
+FILL_FRAGMENT_SHADER = '''
     out vec4 fragColor;
 
     uniform vec4 u_FillColor;
@@ -57,7 +76,7 @@ fill_fragment_shader = '''
         fragColor = u_FillColor;
     }
 '''
-border_vertex_shader = '''
+BORDER_VERTEX_SHADER = '''
     in vec2 pos;
     in float len;
     out float v_Len;
@@ -70,7 +89,7 @@ border_vertex_shader = '''
         gl_Position = u_ViewProjectionMatrix * vec4(pos.x, pos.y, 0.0f, 1.0f);
     }
 '''
-border_fragment_shader = '''
+BORDER_FRAGMENT_SHADER = '''
     in float v_Len;
     out vec4 fragColor;
 
@@ -90,14 +109,15 @@ border_fragment_shader = '''
         fragColor = col;
     }
 '''
-icon_shader = gpu.types.GPUShader(icon_vertex_shader, icon_fragment_shader)
-fill_shader = gpu.types.GPUShader(fill_vertex_shader, fill_fragment_shader)
-border_shader = gpu.types.GPUShader(border_vertex_shader, border_fragment_shader)
+icon_shader = gpu.types.GPUShader(ICON_VERTEX_SHADER, ICON_FRAGMENT_SHADER)  # noqa
+fill_shader = gpu.types.GPUShader(FILL_VERTEX_SHADER, FILL_FRAGMENT_SHADER)  # noqa
+border_shader = gpu.types.GPUShader(BORDER_VERTEX_SHADER, BORDER_FRAGMENT_SHADER)  # noqa
 
 
 # noinspection PyTypeChecker
 class MESH_OT_select_lasso_xray(bpy.types.Operator):
     """Select items using lasso selection with x-ray"""
+
     bl_idname = "mesh.select_lasso_xray"
     bl_label = "Lasso Select X-Ray"
     bl_options = {'REGISTER', 'GRAB_CURSOR'}
@@ -105,74 +125,78 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
     mode: bpy.props.EnumProperty(
         name="Mode",
         description="Default selection mode",
-        items=[('SET', "Set", "Set a new selection", 'SELECT_SET', 1),
-               ('ADD', "Extend", "Extend existing selection", 'SELECT_EXTEND', 2),
-               ('SUB', "Subtract", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
-               ('XOR', "Difference", "Inverts existing selection", 'SELECT_DIFFERENCE', 4),
-               ('AND', "Intersect", "Intersect existing selection", 'SELECT_INTERSECT', 5)
-               ],
+        items=[
+            ('SET', "Set", "Set a new selection", 'SELECT_SET', 1),
+            ('ADD', "Extend", "Extend existing selection", 'SELECT_EXTEND', 2),
+            ('SUB', "Subtract", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
+            ('XOR', "Difference", "Inverts existing selection", 'SELECT_DIFFERENCE', 4),
+            ('AND', "Intersect", "Intersect existing selection", 'SELECT_INTERSECT', 5),
+        ],
         default='SET',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     alt_mode: bpy.props.EnumProperty(
         name="Alternate Mode",
         description="Alternate selection mode",
-        items=[('SET', "Select", "Set a new selection", 'SELECT_SET', 1),
-               ('ADD', "Extend Selection", "Extend existing selection", 'SELECT_EXTEND', 2),
-               ('SUB', "Deselect", "Subtract existing selection", 'SELECT_SUBTRACT', 3)
-               ],
+        items=[
+            ('SET', "Select", "Set a new selection", 'SELECT_SET', 1),
+            ('ADD', "Extend Selection", "Extend existing selection", 'SELECT_EXTEND', 2),
+            ('SUB', "Deselect", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
+        ],
         default='SUB',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     alt_mode_toggle_key: bpy.props.EnumProperty(
         name="Alternate Mode Toggle Key",
         description="Toggle selection mode by holding this key",
-        items=[('CTRL', "CTRL", ""),
-               ('ALT', "ALT", ""),
-               ('SHIFT', "SHIFT", "")
-               ],
+        items=[
+            ('CTRL', "CTRL", ""),
+            ('ALT', "ALT", ""),
+            ('SHIFT', "SHIFT", ""),
+        ],
         default='SHIFT',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     wait_for_input: bpy.props.BoolProperty(
         name="Wait for Input",
         description="Wait for mouse input or initialize lasso selection immediately (usually you "
                     "should enable it when you assign the operator to a keyboard key)",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     override_global_props: bpy.props.BoolProperty(
         name="Override Global Properties",
-        description="Use properties in this keymaps item instead of properties in the global "
-                    "addon settings",
+        description="Use properties in this keymaps item instead of properties in the global addon settings",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through: bpy.props.BoolProperty(
         name="Select Through",
         description="Select verts, faces and edges laying underneath",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through_toggle_key: bpy.props.EnumProperty(
         name="Selection Through Toggle Key",
         description="Toggle selection through by holding this key",
-        items=[('CTRL', "CTRL", ""),
-               ('ALT', "ALT", ""),
-               ('SHIFT', "SHIFT", ""),
-               ('DISABLED', "DISABLED", "")
-               ],
+        items=[
+            ('CTRL', "CTRL", ""),
+            ('ALT', "ALT", ""),
+            ('SHIFT', "SHIFT", ""),
+            ('DISABLED', "DISABLED", ""),
+        ],
         default='DISABLED',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through_toggle_type: bpy.props.EnumProperty(
         name="Selection Through Toggle Press / Hold",
         description="Toggle selection through by holding or by pressing key",
-        items=[('HOLD', "Holding", ""),
-               ('PRESS', "Pressing", "")
-               ],
+        items=[
+            ('HOLD', "Holding", ""),
+            ('PRESS', "Pressing", ""),
+        ],
         default='HOLD',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     default_color: bpy.props.FloatVectorProperty(
         name="Default Color",
@@ -182,7 +206,7 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         soft_max=1.0,
         size=3,
         default=(1.0, 1.0, 1.0),
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through_color: bpy.props.FloatVectorProperty(
         name="Select Through Color",
@@ -192,13 +216,13 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         soft_max=1.0,
         size=3,
         default=(1.0, 1.0, 1.0),
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     show_xray: bpy.props.BoolProperty(
         name="Show X-Ray",
         description="Enable x-ray shading during selection",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_all_edges: bpy.props.BoolProperty(
         name="Select All Edges",
@@ -206,7 +230,7 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
                     "not just the ones completely inside the selection lasso. Works only in "
                     "select through mode",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_all_faces: bpy.props.BoolProperty(
         name="Select All Faces",
@@ -214,25 +238,25 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
                     "not just the ones with centers inside the selection lasso. Works only in "
                     "select through mode",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     hide_mirror: bpy.props.BoolProperty(
         name="Hide Mirror",
         description="Hide mirror modifiers during selection",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     hide_solidify: bpy.props.BoolProperty(
         name="Hide Solidify",
         description="Hide solidify modifiers during selection",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     show_lasso_icon: bpy.props.BoolProperty(
         name="Show Crosshair",
         description="Show crosshair when wait_for_input is enabled",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
 
     @classmethod
@@ -272,32 +296,38 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         self.unif_fill_color = None
 
     def invoke(self, context, event):
-        # set operator properties from addon preferences
+        # Set operator properties from addon preferences.
         set_properties_from_preferences(self, tool='LASSO')
 
-        self.override_intersect_tests = \
-            self.select_all_faces and context.tool_settings.mesh_select_mode[2] or \
-            self.select_all_edges and context.tool_settings.mesh_select_mode[1]
+        self.override_intersect_tests = (
+            self.select_all_faces
+            and context.tool_settings.mesh_select_mode[2]
+            or self.select_all_edges
+            and context.tool_settings.mesh_select_mode[1]
+        )
 
-        self.override_selection = \
-            self.select_through_toggle_key != 'DISABLED' or \
-            self.alt_mode_toggle_key != 'SHIFT' or \
-            self.alt_mode != 'SUB' or \
-            not self.select_through and self.default_color[:] != (1.0, 1.0, 1.0) or \
-            self.select_through and self.select_through_color[:] != (1.0, 1.0, 1.0) or \
-            self.directional or \
-            self.override_intersect_tests
+        self.override_selection = (
+            self.select_through_toggle_key != 'DISABLED'
+            or self.alt_mode_toggle_key != 'SHIFT'
+            or self.alt_mode != 'SUB'
+            or not self.select_through
+            and self.default_color[:] != (1.0, 1.0, 1.0)
+            or self.select_through
+            and self.select_through_color[:] != (1.0, 1.0, 1.0)
+            or self.directional
+            or self.override_intersect_tests
+        )
 
         self.init_mods = gather_modifiers(self, context)  # save initial modifier states
         self.init_overlays = gather_overlays(context)  # save initial x-ray overlay states
 
-        # set x-ray overlays and modifiers
+        # Set x-ray overlays and modifiers.
         initialize_shading_from_properties(self, context)
         set_modifiers_from_properties(self)
 
         context.window_manager.modal_handler_add(self)
 
-        # jump to
+        # Jump to.
         if self.wait_for_input and self.override_wait_for_input:
             self.begin_custom_wait_for_input_stage(context, event)
         elif self.override_selection:
@@ -308,21 +338,23 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
 
     def modal(self, context, event):
         if self.stage == 'CUSTOM_WAIT_FOR_INPUT':
-            # update shader
+            # Update shader.
             if event.type == 'MOUSEMOVE':
                 self.update_shader_position(context, event)
 
-            # toggle modifiers and overlays
+            # Toggle modifiers and overlays.
             if event.type in self.select_through_toggle_key_list:
-                if event.value in {'PRESS', 'RELEASE'} and \
-                        self.select_through_toggle_type == 'HOLD' or \
-                        event.value == 'PRESS' and \
-                        self.select_through_toggle_type == 'PRESS':
+                if (
+                    event.value in {'PRESS', 'RELEASE'}
+                    and self.select_through_toggle_type == 'HOLD'
+                    or event.value == 'PRESS'
+                    and self.select_through_toggle_type == 'PRESS'
+                ):
                     self.invert_select_through = not self.invert_select_through
                     set_shading_from_properties(self, context)
                     update_shader_color(self, context)
 
-            # finish stage
+            # Finish stage.
             if event.value == 'PRESS' and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE'}:
                 self.finish_custom_wait_for_input_stage(context)
                 toggle_alt_mode(self, event)
@@ -333,11 +365,11 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
 
         if self.stage == 'CUSTOM_SELECTION':
             if event.type == 'MOUSEMOVE':
-                # to simplify path and improve performance
-                # only append points with enough distance between them
+                # To simplify path and improve performance
+                # only append points with enough distance between them.
                 if hypot(event.mouse_region_x - self.last_mouse_region_x,
                          event.mouse_region_y - self.last_mouse_region_y) > 10:
-                    # append path point
+                    # Append path point.
                     self.path.append({"name": "",
                                       "loc": (event.mouse_region_x, event.mouse_region_y),
                                       "time": time.time()})
@@ -346,23 +378,28 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
                     self.update_direction_and_properties(context)
                     self.update_shader_position(context, event)
 
-            # toggle modifiers and overlays
+            # Toggle modifiers and overlays.
             if event.type in self.select_through_toggle_key_list:
-                if event.value in {'PRESS', 'RELEASE'} and \
-                        self.select_through_toggle_type == 'HOLD' or \
-                        event.value == 'PRESS' and \
-                        self.select_through_toggle_type == 'PRESS':
+                if (
+                    event.value in {'PRESS', 'RELEASE'}
+                    and self.select_through_toggle_type == 'HOLD'
+                    or event.value == 'PRESS'
+                    and self.select_through_toggle_type == 'PRESS'
+                ):
                     self.invert_select_through = not self.invert_select_through
                     set_shading_from_properties(self, context)
                     update_shader_color(self, context)
 
-            # finish stage
-            if event.value in {'RELEASE'} and \
-                    event.type in {'LEFTMOUSE', 'MIDDLEMOUSE', 'RIGHTMOUSE'}:
+            # Finish stage.
+            if event.value == 'RELEASE' and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE', 'RIGHTMOUSE'}:
                 self.finish_custom_selection_stage(context)
-                if self.override_intersect_tests and (self.select_through and not self.invert_select_through or
-                                                      not self.select_through and self.invert_select_through):
-                    self.begin_custom_intersect_tests(context, )
+                if self.override_intersect_tests and (
+                    self.select_through
+                    and not self.invert_select_through
+                    or not self.select_through
+                    and self.invert_select_through
+                ):
+                    self.begin_custom_intersect_tests(context)
                     self.finish_modal(context)
                     bpy.ops.ed.undo_push(message="Lasso Select")
                     return {'FINISHED'}
@@ -373,12 +410,12 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
                     return {'FINISHED'}
 
         if self.stage == 'INBUILT_OP':
-            # inbuilt op was finished, now finish modal
+            # Inbuilt op was finished, now finish modal.
             if event.type == 'MOUSEMOVE':
                 self.finish_modal(context)
                 return {'FINISHED'}
 
-        # cancel modal
+        # Cancel modal.
         if event.type in {'ESC', 'RIGHTMOUSE'}:
             if self.stage == 'CUSTOM_WAIT_FOR_INPUT':
                 self.finish_custom_wait_for_input_stage(context)
@@ -390,25 +427,25 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def begin_custom_wait_for_input_stage(self, context, event):
-        """Set status text, draw wait_for_input shader"""
+        """Set status text, draw wait_for_input shader."""
         self.stage = 'CUSTOM_WAIT_FOR_INPUT'
         enum_items = self.properties.bl_rna.properties["mode"].enum_items
         curr_mode_name = enum_items[self.curr_mode].name
         enum_items = self.properties.bl_rna.properties["alt_mode"].enum_items
         alt_mode_name = enum_items[self.alt_mode].name
-        status_text = "RMB, ESC: Cancel  |  LMB: %s  |  %s+LMB: %s" \
-                      % (curr_mode_name, self.alt_mode_toggle_key, alt_mode_name)
+
+        status_text = f"RMB, ESC: Cancel  |  LMB: {curr_mode_name}  |  {self.alt_mode_toggle_key}+LMB: {alt_mode_name}"
         if self.select_through_toggle_key != 'DISABLED':
-            status_text += "  |  %s: Toggle Select Through" % self.select_through_toggle_key
+            status_text += f"  |  {self.select_through_toggle_key}: Toggle Select Through"
         context.workspace.status_text_set(text=status_text)
+
         if self.show_lasso_icon:
             self.build_icon_shader()
-            self.handler = context.space_data.draw_handler_add(
-                self.draw_icon_shader, (), 'WINDOW', 'POST_PIXEL')
+            self.handler = context.space_data.draw_handler_add(self.draw_icon_shader, (), 'WINDOW', 'POST_PIXEL')
             self.update_shader_position(context, event)
 
     def finish_custom_wait_for_input_stage(self, context):
-        """Restore status text, remove wait_for_input shader"""
+        """Restore status text, remove wait_for_input shader."""
         self.wait_for_input = False
         context.workspace.status_text_set(text=None)
         if self.show_lasso_icon:
@@ -417,23 +454,21 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
 
     def begin_custom_selection_stage(self, context, event):
         self.stage = 'CUSTOM_SELECTION'
+
         status_text = "RMB, ESC: Cancel"
         if self.select_through_toggle_key != 'DISABLED':
-            status_text += "  |  %s: Toggle Select Through" % self.select_through_toggle_key
+            status_text += f"  |  {self.select_through_toggle_key}: Toggle Select Through"
         context.workspace.status_text_set(text=status_text)
 
-        # store initial path point
-        self.path = [{"name": "",
-                      "loc": (event.mouse_region_x, event.mouse_region_y),
-                      "time": time.time()}]
+        # Store initial path point.
+        self.path = [{"name": "", "loc": (event.mouse_region_x, event.mouse_region_y), "time": time.time()}]
         self.lasso_poly = [(event.mouse_region_x, event.mouse_region_y)]
-        # for hypot calculation
+        # For hypot calculation.
         self.last_mouse_region_x = event.mouse_region_x
         self.last_mouse_region_y = event.mouse_region_y
 
         self.build_lasso_shader()
-        self.handler = context.space_data.draw_handler_add(
-            self.draw_lasso_shader, (), 'WINDOW', 'POST_PIXEL')
+        self.handler = context.space_data.draw_handler_add(self.draw_lasso_shader, (), 'WINDOW', 'POST_PIXEL')
         self.update_shader_position(context, event)
 
     def finish_custom_selection_stage(self, context):
@@ -449,10 +484,14 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         bpy.ops.view3d.select_lasso(path=self.path, mode=self.curr_mode)
 
     def begin_custom_intersect_tests(self, context):
-        select_mesh_elems(context, mode=self.curr_mode, tool=2, tool_co=self.lasso_poly,
-                          select_all_edges=self.select_all_edges,
-                          select_all_faces=self.select_all_faces)
-        bpy.ops.ed.undo_push(message="Lasso Select")
+        select_mesh_elems(
+            context,
+            mode=self.curr_mode,
+            tool='LASSO',
+            tool_co=self.lasso_poly,
+            select_all_edges=self.select_all_edges,
+            select_all_faces=self.select_all_faces,
+        )
 
     def finish_modal(self, context):
         restore_overlays(self, context)
@@ -469,9 +508,12 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
             if _ != self.direction:
                 self.direction = _
                 set_properties_from_direction(self, self.direction)
-                self.override_intersect_tests = \
-                    self.select_all_faces and context.tool_settings.mesh_select_mode[2] or \
-                    self.select_all_edges and context.tool_settings.mesh_select_mode[1]
+                self.override_intersect_tests = (
+                    self.select_all_faces
+                    and context.tool_settings.mesh_select_mode[2]
+                    or self.select_all_edges
+                    and context.tool_settings.mesh_select_mode[1]
+                )
                 set_shading_from_properties(self, context)
 
     def update_shader_position(self, context, event):
@@ -491,8 +533,12 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
 
     def draw_icon_shader(self):
         matrix = gpu.matrix.get_projection_matrix()
-        if self.select_through and not self.invert_select_through or \
-                not self.select_through and self.invert_select_through:
+        if (
+            self.select_through
+            and not self.invert_select_through
+            or not self.select_through
+            and self.invert_select_through
+        ):
             segment_color = (*self.select_through_color, 1)
         else:
             segment_color = (*self.default_color, 1)
@@ -502,7 +548,7 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         icon_shader.uniform_float("u_X", self.last_mouse_region_x)
         icon_shader.uniform_float("u_Y", self.last_mouse_region_y)
         icon_shader.uniform_float("u_Scale", 25)
-        icon_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4)
+        icon_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4, 1)
         self.icon_batch.draw(icon_shader)
 
     def build_lasso_shader(self):
@@ -511,7 +557,7 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         self.unif_fill_color = fill_shader.uniform_from_name("u_FillColor")
 
     def draw_lasso_shader(self):
-        # create batches
+        # Create batches.
         vertices = [Vector(v) for v in self.lasso_poly]
         vertices.append(Vector(self.lasso_poly[0]))
 
@@ -519,18 +565,24 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         for a, b in zip(vertices[:-1], vertices[1:]):
             lengths.append(lengths[-1] + (a - b).length)
 
-        bbox_vertices = ((self.lasso_xmin, self.lasso_ymax),
-                         (self.lasso_xmin, self.lasso_ymin),
-                         (self.lasso_xmax, self.lasso_ymin),
-                         (self.lasso_xmax, self.lasso_ymax))
+        bbox_vertices = (
+            (self.lasso_xmin, self.lasso_ymax),
+            (self.lasso_xmin, self.lasso_ymin),
+            (self.lasso_xmax, self.lasso_ymin),
+            (self.lasso_xmax, self.lasso_ymax),
+        )
 
         border_batch = batch_for_shader(border_shader, 'LINE_STRIP', {"pos": vertices, "len": lengths})
         fill_batch = batch_for_shader(fill_shader, 'TRI_FAN', {"pos": vertices})
         stencil_batch = batch_for_shader(fill_shader, 'TRI_FAN', {"pos": bbox_vertices})
 
         matrix = gpu.matrix.get_projection_matrix()
-        if self.select_through and not self.invert_select_through or \
-                not self.select_through and self.invert_select_through:
+        if (
+            self.select_through
+            and not self.invert_select_through
+            or not self.select_through
+            and self.invert_select_through
+        ):
             segment_color = (*self.select_through_color, 1)
             fill_color = (*self.select_through_color, 0.04)
         else:
@@ -539,7 +591,7 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         gap_color = (0.0, 0.0, 0.0, 1.0)
         shadow_color = (0.3, 0.3, 0.3, 1.0)
 
-        # stencil mask
+        # Stencil mask.
         # https://stackoverflow.com/a/25468363/5106051
         glClear(GL_STENCIL_BUFFER_BIT)
         glEnable(GL_STENCIL_TEST)
@@ -549,13 +601,13 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         glStencilMask(1)
         fill_shader.bind()
         fill_shader.uniform_float("u_ViewProjectionMatrix", matrix)
-        fill_shader.uniform_vector_float(self.unif_fill_color, pack("4f", *fill_color), 4)
+        fill_shader.uniform_vector_float(self.unif_fill_color, pack("4f", *fill_color), 4, 1)
         fill_batch.draw(fill_shader)
         glStencilFunc(GL_EQUAL, 1, 1)
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
 
-        # fill
+        # Fill.
         glEnable(GL_BLEND)
         stencil_batch.draw(fill_shader)
         glDisable(GL_BLEND)
@@ -563,43 +615,43 @@ class MESH_OT_select_lasso_xray(bpy.types.Operator):
         dashed = 0 if self.direction == "RIGHT_TO_LEFT" else 1
 
         if not dashed:
-            # solid border shadow
+            # Solid border shadow.
             glLineWidth(3)
             border_shader.bind()
             border_shader.uniform_float("u_ViewProjectionMatrix", matrix)
             border_shader.uniform_int("u_Dashed", dashed)
-            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *shadow_color), 4)
+            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *shadow_color), 4, 1)
             border_batch.draw(border_shader)
             glLineWidth(1)
 
-            # solid border
+            # Solid border.
             glDisable(GL_STENCIL_TEST)
-            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4)
+            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4, 1)
             border_batch.draw(border_shader)
 
         else:
-            # dashed border
+            # Dashed border.
             glDisable(GL_STENCIL_TEST)
             border_shader.bind()
             border_shader.uniform_float("u_ViewProjectionMatrix", matrix)
             border_shader.uniform_int("u_Dashed", dashed)
-            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4)
-            border_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4)
+            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4, 1)
+            border_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4, 1)
             border_batch.draw(border_shader)
 
 
-classes = (
-    MESH_OT_select_lasso_xray,
-)
+classes = (MESH_OT_select_lasso_xray,)
 
 
 def register():
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)
 
 
 def unregister():
     from bpy.utils import unregister_class
+
     for cls in classes:
         unregister_class(cls)

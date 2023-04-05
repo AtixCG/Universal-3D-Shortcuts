@@ -295,14 +295,10 @@ class SmartEdge(bpy.types.Operator):
 
     def toggle_sharp(self, active, edges):
 
-        if any([not e.smooth for e in edges]):
-            smooth = True
-
-        else:
-            smooth = False
+        state = any(e.smooth for e in edges)
 
         for e in edges:
-            e.smooth = smooth
+            e.smooth = not state
 
         bmesh.update_edit_mesh(active.data)
 

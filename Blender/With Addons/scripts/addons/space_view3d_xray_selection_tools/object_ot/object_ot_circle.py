@@ -1,15 +1,17 @@
+from struct import pack
+
 import bpy
 import gpu
 import numpy as np
-from struct import pack
-from mathutils import Vector
-from gpu_extras.batch import batch_for_shader
 from bgl import glEnable, glDisable, GL_BLEND
-from .. functions.object_modal import *
+from gpu_extras.batch import batch_for_shader
+from mathutils import Vector
+
 from ..functions.object_intersect_circle import select_obs_in_circle
+from ..functions.object_modal import *
 
 
-fill_vertex_shader = '''
+FILL_VERTEX_SHADER = '''
     in vec2 pos;
 
     uniform mat4 u_ViewProjectionMatrix;
@@ -21,7 +23,7 @@ fill_vertex_shader = '''
         gl_Position = u_ViewProjectionMatrix * vec4(pos.x + u_X, pos.y + u_Y, 0.0f, 1.0f);
     }
 '''
-fill_fragment_shader = '''
+FILL_FRAGMENT_SHADER = '''
     out vec4 fragColor;
 
     uniform vec4 u_FillColor;
@@ -31,7 +33,7 @@ fill_fragment_shader = '''
         fragColor = u_FillColor;
     }
 '''
-border_vertex_shader = '''
+BORDER_VERTEX_SHADER = '''
     in vec2 pos;
     in float len;
     out float v_Len;
@@ -46,7 +48,7 @@ border_vertex_shader = '''
         gl_Position = u_ViewProjectionMatrix * vec4(pos.x + u_X, pos.y + u_Y, 0.0f, 1.0f);
     }
 '''
-border_fragment_shader = '''
+BORDER_FRAGMENT_SHADER = '''
     in float v_Len;
     out vec4 fragColor;
 
@@ -66,98 +68,104 @@ border_fragment_shader = '''
         fragColor = col;
     }
 '''
-border_shader = gpu.types.GPUShader(border_vertex_shader, border_fragment_shader)
-fill_shader = gpu.types.GPUShader(fill_vertex_shader, fill_fragment_shader)
+fill_shader = gpu.types.GPUShader(FILL_VERTEX_SHADER, FILL_FRAGMENT_SHADER)  # noqa
+border_shader = gpu.types.GPUShader(BORDER_VERTEX_SHADER, BORDER_FRAGMENT_SHADER)  # noqa
 
 
 # noinspection PyTypeChecker
 class OBJECT_OT_select_circle_xray(bpy.types.Operator):
     """Select items using circle selection with x-ray"""
+
     bl_idname = "object.select_circle_xray"
     bl_label = "Circle Select X-Ray"
     bl_options = {'REGISTER'}
 
     mode: bpy.props.EnumProperty(
         name="Mode",
-        items=[('SET', "Set", "Set a new selection", 'SELECT_SET', 1),
-               ('ADD', "Extend", "Extend existing selection", 'SELECT_EXTEND', 2),
-               ('SUB', "Subtract", "Subtract existing selection", 'SELECT_SUBTRACT', 3)
-               ],
+        items=[
+            ('SET', "Set", "Set a new selection", 'SELECT_SET', 1),
+            ('ADD', "Extend", "Extend existing selection", 'SELECT_EXTEND', 2),
+            ('SUB', "Subtract", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
+        ],
         default='SET',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     alt_mode: bpy.props.EnumProperty(
         name="Alternate Mode",
         description="Alternate selection mode",
-        items=[('SET', "Select", "Set a new selection", 'SELECT_SET', 1),
-               ('ADD', "Extend Selection", "Extend existing selection", 'SELECT_EXTEND', 2),
-               ('SUB', "Deselect", "Subtract existing selection", 'SELECT_SUBTRACT', 3)
-               ],
+        items=[
+            ('SET', "Select", "Set a new selection", 'SELECT_SET', 1),
+            ('ADD', "Extend Selection", "Extend existing selection", 'SELECT_EXTEND', 2),
+            ('SUB', "Deselect", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
+        ],
         default='SUB',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     alt_mode_toggle_key: bpy.props.EnumProperty(
         name="Alternate Mode Toggle Key",
         description="Toggle selection mode by holding this key",
-        items=[('CTRL', "CTRL", ""),
-               ('ALT', "ALT", ""),
-               ('SHIFT', "SHIFT", "")
-               ],
+        items=[
+            ('CTRL', "CTRL", ""),
+            ('ALT', "ALT", ""),
+            ('SHIFT', "SHIFT", ""),
+        ],
         default='SHIFT',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     radius: bpy.props.IntProperty(
         name="Radius",
         description="Radius",
         default=25,
-        min=1
+        min=1,
     )
     wait_for_input: bpy.props.BoolProperty(
         name="Wait for input",
         description="Wait for mouse input or initialize box selection immediately "
                     "(enable when assigning the operator to a keyboard key)",
-        default=True
+        default=True,
     )
     override_global_props: bpy.props.BoolProperty(
         name="Override Global Properties",
-        description="Use properties in this keymaps item instead of properties in the global "
-                    "addon settings",
+        description="Use properties in this keymaps item instead of properties in the global addon settings",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     show_xray: bpy.props.BoolProperty(
         name="Show X-Ray",
         description="Enable x-ray shading during selection",
-        default=True
+        default=True,
     )
     xray_toggle_key: bpy.props.EnumProperty(
         name="X-Ray Toggle Key",
         description="Toggle x-ray by holding this key",
-        items=[('CTRL', "CTRL", ""),
-               ('ALT', "ALT", ""),
-               ('SHIFT', "SHIFT", ""),
-               ('DISABLED', "DISABLED", "")
-               ],
+        items=[
+            ('CTRL', "CTRL", ""),
+            ('ALT', "ALT", ""),
+            ('SHIFT', "SHIFT", ""),
+            ('DISABLED', "DISABLED", ""),
+        ],
         default='DISABLED',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     xray_toggle_type: bpy.props.EnumProperty(
         name="Toggle X-Ray by Press or Hold",
         description="Toggle x-ray by holding or by pressing key",
-        items=[('HOLD', "Holding", ""),
-               ('PRESS', "Pressing", "")
-               ],
+        items=[
+            ('HOLD', "Holding", ""),
+            ('PRESS', "Pressing", ""),
+        ],
         default='HOLD',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     behavior: bpy.props.EnumProperty(
         name="Selection Behavior",
         description="Selection behavior",
-        items=[('ORIGIN', "Origin (Default)", "Select objects by origins", 'DOT', 1),
-               ('CONTAIN', "Contain", "Select only the objects fully contained in circle", 'STICKY_UVS_LOC', 2),
-               ('OVERLAP', "Overlap", "Select objects overlapping circle", 'SELECT_SUBTRACT', 3)
-               ],
-        default='ORIGIN'
+        items=[
+            ('ORIGIN', "Origin (Default)", "Select objects by origins", 'DOT', 1),
+            ('CONTAIN', "Contain", "Select only the objects fully contained in circle", 'STICKY_UVS_LOC', 2),
+            ('OVERLAP', "Overlap", "Select objects overlapping circle", 'SELECT_SUBTRACT', 3),
+        ],
+        default='ORIGIN',
     )
 
     @classmethod
@@ -192,23 +200,24 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
 
         self.override_intersect_tests = self.behavior != 'ORIGIN'
 
-        self.override_modal = \
-            self.xray_toggle_key != 'DISABLED' or \
-            self.alt_mode_toggle_key != 'SHIFT' or \
-            self.alt_mode != 'SUB' or \
-            self.override_intersect_tests
+        self.override_modal = (
+            self.xray_toggle_key != 'DISABLED'
+            or self.alt_mode_toggle_key != 'SHIFT'
+            or self.alt_mode != 'SUB'
+            or self.override_intersect_tests
+        )
 
         self.init_overlays = gather_overlays(context)  # save initial x-ray overlay states
 
-        # sync operator properties with current shading
+        # Sync operator properties with current shading.
         sync_properties(self, context)
 
-        # enable x-ray overlays
+        # Enable x-ray overlays.
         toggle_overlays(self, context)
 
         context.window_manager.modal_handler_add(self)
 
-        # jump to
+        # Jump to.
         if self.override_modal:
             self.show_custom_ui(context, event)
             if self.wait_for_input:
@@ -221,25 +230,26 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
 
     def modal(self, context, event):
         if self.stage == 'CUSTOM_WAIT_FOR_INPUT':
-            # update shader
+            # Update shader.
             if event.type == 'MOUSEMOVE':
                 self.update_shader_position(context, event)
 
-            # toggle overlays
+            # Toggle overlays.
             if event.type in self.xray_toggle_key_list:
-                if event.value in {'PRESS', 'RELEASE'} and \
-                        self.xray_toggle_type == 'HOLD' or \
-                        event.value == 'PRESS' and \
-                        self.xray_toggle_type == 'PRESS':
+                if (
+                    event.value in {'PRESS', 'RELEASE'}
+                    and self.xray_toggle_type == 'HOLD'
+                    or event.value == 'PRESS'
+                    and self.xray_toggle_type == 'PRESS'
+                ):
                     self.show_xray = not self.show_xray
                     toggle_overlays(self, context)
 
-            # change radius
-            if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE',
-                              'NUMPAD_MINUS', 'NUMPAD_PLUS'}:
+            # Change radius.
+            if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE', 'NUMPAD_MINUS', 'NUMPAD_PLUS'}:
                 self.update_radius(context, event)
 
-            # finish stage
+            # Finish stage.
             if event.value == 'PRESS' and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE'}:
                 self.stage = 'CUSTOM_SELECTION'
                 toggle_alt_mode(self, event)
@@ -249,7 +259,7 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
                     self.exec_inbuilt_circle_select()
 
         if self.stage == 'CUSTOM_SELECTION':
-            # update shader
+            # Update shader.
             if event.type == 'MOUSEMOVE':
                 self.update_shader_position(context, event)
                 if self.override_intersect_tests:
@@ -257,21 +267,22 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
                 else:
                     self.exec_inbuilt_circle_select()
 
-            # toggle overlays
+            # Toggle overlays.
             if event.type in self.xray_toggle_key_list:
-                if event.value in {'PRESS', 'RELEASE'} and \
-                        self.xray_toggle_type == 'HOLD' or \
-                        event.value == 'PRESS' and \
-                        self.xray_toggle_type == 'PRESS':
+                if (
+                    event.value in {'PRESS', 'RELEASE'}
+                    and self.xray_toggle_type == 'HOLD'
+                    or event.value == 'PRESS'
+                    and self.xray_toggle_type == 'PRESS'
+                ):
                     self.show_xray = not self.show_xray
                     toggle_overlays(self, context)
 
-            # change radius
-            if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE',
-                              'NUMPAD_MINUS', 'NUMPAD_PLUS'}:
+            # Change radius.
+            if event.type in {'WHEELUPMOUSE', 'WHEELDOWNMOUSE', 'NUMPAD_MINUS', 'NUMPAD_PLUS'}:
                 self.update_radius(context, event)
 
-            # finish stage
+            # Finish stage.
             if event.value == 'RELEASE' and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE'}:
                 if self.wait_for_input:
                     self.stage = 'CUSTOM_WAIT_FOR_INPUT'
@@ -281,7 +292,7 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
                     bpy.ops.ed.undo_push(message="Circle Select")
                     return {'FINISHED'}
 
-        # finish modal
+        # Finish modal.
         if event.value == 'PRESS' and event.type == 'ENTER':
             if self.stage in {'CUSTOM_WAIT_FOR_INPUT', 'CUSTOM_SELECTION'}:
                 self.remove_custom_ui(context)
@@ -289,14 +300,13 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
             return {'FINISHED'}
 
         if self.stage == 'INBUILT_OP':
-            # inbuilt op was finished, now finish modal
+            # Inbuilt op was finished, now finish modal.
             if event.type == 'MOUSEMOVE':
-                self.radius = \
-                    context.window_manager.operator_properties_last("view3d.select_circle").radius
+                self.radius = context.window_manager.operator_properties_last("view3d.select_circle").radius
                 self.finish_modal(context)
                 return {'FINISHED'}
 
-        # cancel modal
+        # Cancel modal.
         if event.type in {'ESC', 'RIGHTMOUSE'}:
             if self.stage in {'CUSTOM_WAIT_FOR_INPUT', 'CUSTOM_SELECTION'}:
                 self.remove_custom_ui(context)
@@ -307,26 +317,26 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def show_custom_ui(self, context, event):
-        """Set cursor and status text, draw shader"""
+        """Set cursor and status text, draw shader."""
         context.window.cursor_modal_set('CROSSHAIR')
         enum_items = self.properties.bl_rna.properties["mode"].enum_items
         curr_mode_name = enum_items[self.curr_mode].name
         enum_items = self.properties.bl_rna.properties["alt_mode"].enum_items
         alt_mode_name = enum_items[self.alt_mode].name
+
         if self.wait_for_input:
-            status_text = "RMB, ESC: Cancel  |  ENTER: Confirm  |  " \
-                          "WhDown/Pad+: Add  |  WhUp/Pad-: Subtract  |  " \
-                          "LMB: %s  |  %s+LMB: %s" % (curr_mode_name, self.alt_mode_toggle_key,
-                                                      alt_mode_name)
+            status_text = (
+                "RMB, ESC: Cancel  |  ENTER: Confirm  |  WhDown/Pad+: Add  |  WhUp/Pad-: Subtract  |  "
+                f"LMB: {curr_mode_name}  |  {self.alt_mode_toggle_key}+LMB: {alt_mode_name}"
+            )
         else:
             status_text = "RMB, ESC: Cancel  |  WhDown/Pad+: Add  |  WhUp/Pad-: Subtract"
         if self.xray_toggle_key != 'DISABLED':
-            status_text += "  |  %s: Toggle X-Ray" % self.xray_toggle_key
+            status_text += f"  |  {self.xray_toggle_key}: Toggle X-Ray"
         context.workspace.status_text_set(text=status_text)
 
         self.build_circle_shader()
-        self.handler = context.space_data.draw_handler_add(
-            self.draw_circle_shader, (), 'WINDOW', 'POST_PIXEL')
+        self.handler = context.space_data.draw_handler_add(self.draw_circle_shader, (), 'WINDOW', 'POST_PIXEL')
         self.update_shader_position(context, event)
 
     def update_radius(self, context, event):
@@ -346,25 +356,28 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
 
     def invoke_inbuilt_circle_select(self):
         self.stage = 'INBUILT_OP'
-        bpy.ops.view3d.select_circle('INVOKE_DEFAULT', mode=self.curr_mode,
-                                     wait_for_input=self.wait_for_input, radius=self.radius)
+        bpy.ops.view3d.select_circle(
+            'INVOKE_DEFAULT', mode=self.curr_mode, wait_for_input=self.wait_for_input, radius=self.radius
+        )
 
     def exec_inbuilt_circle_select(self):
-        bpy.ops.view3d.select_circle(x=self.last_mouse_region_x, y=self.last_mouse_region_y,
-                                     mode=self.curr_mode, wait_for_input=False,
-                                     radius=self.radius)
+        bpy.ops.view3d.select_circle(
+            x=self.last_mouse_region_x,
+            y=self.last_mouse_region_y,
+            mode=self.curr_mode,
+            wait_for_input=False,
+            radius=self.radius,
+        )
 
     def begin_custom_intersect_tests(self, context):
         center = (self.last_mouse_region_x, self.last_mouse_region_y)
-        select_obs_in_circle(context, mode=self.curr_mode, center=center, radius=self.radius,
-                             behavior=self.behavior)
+        select_obs_in_circle(context, mode=self.curr_mode, center=center, radius=self.radius, behavior=self.behavior)
         if self.curr_mode == 'SET':
             self.curr_mode = 'ADD'
 
     def finish_modal(self, context):
         restore_overlays(self, context)
-        context.window_manager.operator_properties_last("object.select_circle_xray").radius = \
-            self.radius
+        context.window_manager.operator_properties_last("object.select_circle_xray").radius = self.radius
 
     def update_shader_position(self, context, event):
         self.last_mouse_region_x = event.mouse_region_x
@@ -375,7 +388,7 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
     def get_circle_verts_orig(radius):
         sides = 31
         # https://stackoverflow.com/questions/17258546/opengl-creating-a-circle-change-radius
-        counts = np.arange(1, sides+1, dtype="f")
+        counts = np.arange(1, sides + 1, dtype="f")
         angles = np.multiply(counts, 2 * np.pi / sides)
         vert_x = np.multiply(np.sin(angles), radius)
         vert_y = np.multiply(np.cos(angles), radius)
@@ -415,7 +428,7 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
         fill_shader.uniform_float("u_ViewProjectionMatrix", matrix)
         fill_shader.uniform_float("u_X", self.last_mouse_region_x)
         fill_shader.uniform_float("u_Y", self.last_mouse_region_y)
-        fill_shader.uniform_vector_float(self.unif_fill_color, pack("4f", *fill_color), 4)
+        fill_shader.uniform_vector_float(self.unif_fill_color, pack("4f", *fill_color), 4, 1)
         self.fill_batch.draw(fill_shader)
         glDisable(GL_BLEND)
 
@@ -428,10 +441,10 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
             border_shader.uniform_float("u_X", self.last_mouse_region_x)
             border_shader.uniform_float("u_Y", self.last_mouse_region_y)
             border_shader.uniform_int("u_Dashed", dashed)
-            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *shadow_color), 4)
+            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *shadow_color), 4, 1)
             self.shadow_batch.draw(border_shader)
             # solid border
-            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4)
+            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4, 1)
             self.border_batch.draw(border_shader)
         else:
             # dashed border
@@ -440,23 +453,23 @@ class OBJECT_OT_select_circle_xray(bpy.types.Operator):
             border_shader.uniform_float("u_X", self.last_mouse_region_x)
             border_shader.uniform_float("u_Y", self.last_mouse_region_y)
             border_shader.uniform_int("u_Dashed", dashed)
-            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4)
-            border_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4)
+            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4, 1)
+            border_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4, 1)
             self.border_batch.draw(border_shader)
 
 
-classes = (
-    OBJECT_OT_select_circle_xray,
-)
+classes = (OBJECT_OT_select_circle_xray,)
 
 
 def register():
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)
 
 
 def unregister():
     from bpy.utils import unregister_class
+
     for cls in classes:
         unregister_class(cls)

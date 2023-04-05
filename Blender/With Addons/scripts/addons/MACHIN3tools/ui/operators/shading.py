@@ -13,6 +13,9 @@ show_overlays = {'SOLID': True,
                  'WIREFRAME': True}
 
 
+render_visibility = []
+
+
 class SwitchShading(bpy.types.Operator):
     bl_idname = "machin3.switch_shading"
     bl_label = "MACHIN3: Switch Shading"
@@ -56,6 +59,9 @@ class SwitchShading(bpy.types.Operator):
             if shading.type == 'RENDERED' and scene.render.engine == 'CYCLES' and get_prefs().activate_render and get_prefs().render_sync_light_visibility:
                 sync_light_visibility(scene)
 
+            if get_prefs().activate_render and get_prefs().activate_shading_pie and get_prefs().render_enforce_hide_render and scene.M3.enforce_hide_render:
+                self.enforce_render_visibility(context, shading.type, debug=True)
+
         overlay.show_overlays = show_overlays[self.shading_type]
         return {'FINISHED'}
 
@@ -81,6 +87,27 @@ class SwitchShading(bpy.types.Operator):
                 print("increasing on switch to material shading")
 
             adjust_lights_for_rendering(mode='INCREASE')
+
+    def enforce_render_visibility(self, context, new_shading_type, debug=False):
+        global render_visibility
+
+
+        if new_shading_type == 'RENDERED':
+            render_visibility = [(obj, obj.name) for obj in context.visible_objects if obj.hide_render == True and obj.visible_get()]
+
+            for obj, name in render_visibility:
+                obj.hide_set(True)
+        else:
+
+            for obj, name in render_visibility:
+                obj = bpy.data.objects.get(name)
+
+                if obj:
+                    obj.hide_set(False)
+                else:
+                    print(f"WARNING: Object {name} could no longer be found")
+
+            render_visibility = []
 
 
 class ToggleOutline(bpy.types.Operator):

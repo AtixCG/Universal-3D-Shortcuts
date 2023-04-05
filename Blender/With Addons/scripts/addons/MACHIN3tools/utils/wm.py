@@ -176,6 +176,38 @@ def get_last_operators(context, debug=False):
                 else:
                     prop = f'Local {axis}'
 
+        elif idname == 'machin3.shade':
+            mode = getattr(op, 'mode')
+
+            label = f"Shade {mode.title()}"
+
+            incl_children = getattr(op, 'include_children')
+            incl_boolean = getattr(op, 'include_boolean_objs')
+
+            if mode == 'SMOOTH':
+                sharpen = getattr(op, 'sharpen')
+
+                if sharpen:
+                    prop += '+Sharpen'
+
+            elif mode == 'FLAT':
+                clear = getattr(op, 'clear')
+
+                if clear:
+                    prop += '+Clear'
+
+            if incl_children:
+                prop += ' +incl Children'
+
+            if incl_boolean:
+                prop += ' +incl. Boolean'
+
+            prop = prop.strip()
+
+        elif idname == 'machin3.purge_orphans':
+            recursive = getattr(op, 'recursive')
+            label = 'Purge Orphans Recursively' if recursive else 'Purge Orphans'
+
 
 
         elif idname == 'machin3.decal_library_visibility_preset':
@@ -253,6 +285,19 @@ def get_last_operators(context, debug=False):
             align_y_axis = getattr(op, 'align_y_axis')
             label = 'Point Cursor'
             prop = 'Y' if align_y_axis else 'Z'
+
+        elif idname == 'machin3.hyper_cursor_object':
+            hide_all = getattr(op, 'hide_all_visible_wire_objs')
+            toggle_wire_children = getattr(op, 'toggle_wire_children')
+            sort_modifiers = getattr(op, 'sort_modifiers')
+
+            if hide_all:
+                label = "Hide All Visible Wire Objects"
+            elif toggle_wire_children:
+                label = "Toggle Wire Objects in Object Tree"
+            elif sort_modifiers:
+                label = "Sort Modifiers + Force Gizmo Update"
+
 
         operators.append((addon, label, idname, prop))
 

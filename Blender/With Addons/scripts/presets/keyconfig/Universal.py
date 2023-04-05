@@ -10724,6 +10724,23 @@ keyconfig_data = \
   ),
  ]
 
+def optimize_for_mac(keyconfig_data):
+    # check platform
+    if sys.platform == "darwin":
+        for keyGroup in keyconfig_data:
+            # get key binding items
+            keyItems = keyGroup[2]["items"]
+            for keyItem in keyItems:
+                keyDef = keyItem[1]
+                if "ctrl" in keyDef:
+                    keyDef["oskey"] = keyDef.pop("ctrl")
+
+import sys, os
+path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(path)
+optimize_for_mac(keyconfig_data)
+
+
 
 if __name__ == "__main__":
     # Only add keywords that are supported.
@@ -10731,7 +10748,6 @@ if __name__ == "__main__":
     keywords = {}
     if blender_version >= (2, 92, 0):
         keywords["keyconfig_version"] = keyconfig_version
-    import os
     from bl_keymap_utils.io import keyconfig_import_from_data
     keyconfig_import_from_data(
         os.path.splitext(os.path.basename(__file__))[0],

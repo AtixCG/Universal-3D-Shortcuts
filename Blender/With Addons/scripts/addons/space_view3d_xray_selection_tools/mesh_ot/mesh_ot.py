@@ -24,7 +24,7 @@ def get_text_dimensions(text, font=0):
 
 
 def get_safe_draw_x(context, ui_width):
-    """Maximum x position of ui left side that doesn't cause overlap width sidebar"""
+    """Maximum x position of ui left side that doesn't cause overlap width sidebar."""
     region_overlap = context.preferences.system.use_region_overlap
     offset_width = 0
     if context.space_data.show_region_ui and region_overlap:
@@ -74,7 +74,7 @@ class Toggle_Base:
 
 
 class MESH_OT_select_tools_xray_toggle_select_through(bpy.types.Operator, Toggle_Base):
-    """Toggle selection through for mesh xray selection tools"""
+    """Toggle selection through for mesh xray selection tools."""
     bl_idname = "mesh.select_tools_xray_toggle_select_through"
     bl_label = "Toggle Select Through"
     bl_options = {'REGISTER', 'UNDO'}
@@ -89,7 +89,7 @@ class MESH_OT_select_tools_xray_toggle_select_through(bpy.types.Operator, Toggle
 
 
 class MESH_OT_select_tools_xray_toggle_mesh_behavior(bpy.types.Operator, Toggle_Base):
-    """Toggle mesh selection behavior for mesh xray selection tools"""
+    """Toggle mesh selection behavior for mesh xray selection tools."""
     bl_idname = "mesh.select_tools_xray_toggle_mesh_behavior"
     bl_label = "Toggle Select All Edges & Faces"
     bl_options = {'REGISTER', 'UNDO'}

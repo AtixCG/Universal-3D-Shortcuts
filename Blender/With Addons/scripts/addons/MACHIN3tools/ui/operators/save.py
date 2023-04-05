@@ -5,6 +5,7 @@ import time
 from ... utils.registration import get_addon
 from ... utils.system import add_path_to_recent_files, get_incremented_paths
 from ... utils.ui import popup_message, get_icon
+from ... colors import green
 
 
 class New(bpy.types.Operator):
@@ -162,6 +163,33 @@ class SaveIncremental(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SaveVersionedStartupFile(bpy.types.Operator):
+    bl_idname = "machin3.save_versioned_startup_file"
+    bl_label = "Save Versioned Startup File"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        config_path = bpy.utils.user_resource('CONFIG')
+        startup_path = os.path.join(config_path, 'startup.blend')
+
+        if os.path.exists(startup_path):
+            indices = [int(f.replace('startup.blend', '')) for f in os.listdir(bpy.utils.user_resource('CONFIG')) if 'startup.blend' in f and f != 'startup.blend']
+            biggest_idx = max(indices) if indices else 0
+
+            os.rename(startup_path, os.path.join(config_path, f'startup.blend{biggest_idx + 1}'))
+
+            bpy.ops.wm.save_homefile()
+
+            self.report({'INFO'}, f'Versioned Startup File saved: {biggest_idx + 1}')
+
+        else:
+            bpy.ops.wm.save_homefile()
+
+            self.report({'INFO'}, f'Initial Startup File saved')
+
+        return {'FINISHED'}
+
+
 class LoadMostRecent(bpy.types.Operator):
     bl_idname = "machin3.load_most_recent"
     bl_label = "Load Most Recent"
@@ -295,17 +323,96 @@ class LoadNext(bpy.types.Operator):
         return currentpath, blendfiles, previousidx
 
 
+decalmachine = None
+
 class Purge(bpy.types.Operator):
     bl_idname = "machin3.purge_orphans"
     bl_label = "MACHIN3: Purge Orphans"
     bl_options = {'REGISTER', 'UNDO'}
+
+    recursive: BoolProperty(name="Recursive Purge", default=False)
 
     @classmethod
     def description(cls, context, properties):
         return "Purge Orphans\nALT: Purge Orphans Recursively"
 
     def invoke(self, context, event):
-        bpy.ops.outliner.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=event.alt)
+        global decalmachine
+        
+        if decalmachine is None:
+            decalmachine = get_addon('DECALmachine')[0]
+
+        self.recursive = event.alt
+
+        before_meshes_count = len(bpy.data.meshes)
+        before_curves_count = len(bpy.data.curves)
+        before_objects_count = len(bpy.data.objects)
+        before_materials_count = len(bpy.data.materials)
+        before_images_count = len(bpy.data.images)
+        before_nodegroups_count = len(bpy.data.node_groups)
+        before_collections_count = len(bpy.data.collections)
+        before_scenes_count = len(bpy.data.scenes)
+        before_worlds_count = len(bpy.data.worlds)
+
+        if decalmachine:
+            bpy.ops.machin3.remove_decal_orphans()
+
+        bpy.ops.outliner.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=self.recursive)
+
+        after_meshes_count = len(bpy.data.meshes)
+        after_curves_count = len(bpy.data.curves)
+        after_objects_count = len(bpy.data.objects)
+        after_materials_count = len(bpy.data.materials)
+        after_images_count = len(bpy.data.images)
+        after_nodegroups_count = len(bpy.data.node_groups)
+        after_collections_count = len(bpy.data.collections)
+        after_scenes_count = len(bpy.data.scenes)
+        after_worlds_count = len(bpy.data.worlds)
+
+        meshes_count = before_meshes_count - after_meshes_count
+        curves_count = before_curves_count - after_curves_count
+        objects_count = before_objects_count - after_objects_count
+        materials_count = before_materials_count - after_materials_count
+        images_count = before_images_count - after_images_count
+        nodegroups_count = before_nodegroups_count - after_nodegroups_count
+        collections_count = before_collections_count - after_collections_count
+        scenes_count = before_scenes_count - after_scenes_count
+        worlds_count = before_worlds_count - after_worlds_count
+
+
+        if any([meshes_count, curves_count, objects_count, materials_count, images_count, nodegroups_count, collections_count, scenes_count, worlds_count]):
+            total_count = meshes_count + curves_count + objects_count + materials_count + images_count + nodegroups_count + collections_count + scenes_count + worlds_count
+
+            msg = [f"Removed {total_count} data blocks!"]
+
+            if meshes_count:
+                msg.append(f" • {meshes_count} meshes")
+
+            if curves_count:
+                msg.append(f" • {curves_count} curves")
+
+            if objects_count:
+                msg.append(f" • {objects_count} objects")
+
+            if materials_count:
+                msg.append(f" • {materials_count} materials")
+
+            if images_count:
+                msg.append(f" • {images_count} images")
+
+            if nodegroups_count:
+                msg.append(f" • {nodegroups_count} node groups")
+
+            if scenes_count:
+                msg.append(f" • {scenes_count} scenes")
+
+            if worlds_count:
+                msg.append(f" • {worlds_count} worlds")
+
+            popup_message(msg, title="Recursive Purge" if event.alt else "Purge")
+
+        else:
+            bpy.ops.machin3.draw_label(text="Nothing to purge.", coords=(context.region.width / 2, 200), color=green)
 
         return {'FINISHED'}
 

@@ -5,7 +5,6 @@ from mathutils import Vector, Matrix
 from .. utils.selection import get_boundary_edges, get_edges_vert_sequences
 from .. utils.math import average_locations
 from .. utils.geometry import calculate_thread
-from .. utils.draw import draw_vector
 
 
 class Thread(bpy.types.Operator):
@@ -97,7 +96,9 @@ class Thread(bpy.types.Operator):
                     radius2 = (center2 - verts2[0].co).length
                     self.radius = (radius1 + radius2) / 2
 
-                    thread, bottom, top, height = calculate_thread(segments=self.segments, loops=self.loops, radius=self.radius, depth=self.depth / 100, h1=self.h1, h2=self.h2, h3=self.h3, h4=self.h4, fade=self.fade / 100)
+                    depth = self.depth / 100 * self.radius
+
+                    thread, bottom, top, height = calculate_thread(segments=self.segments, loops=self.loops, radius=self.radius, depth=depth, h1=self.h1, h2=self.h2, h3=self.h3, h4=self.h4, fade=self.fade / 100)
 
                     if height != 0:
 

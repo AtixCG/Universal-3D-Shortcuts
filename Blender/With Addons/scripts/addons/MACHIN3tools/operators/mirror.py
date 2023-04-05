@@ -7,7 +7,7 @@ from .. utils.tools import get_active_tool
 from .. utils.object import parent, unparent, get_eval_bbox
 from .. utils.math import compare_matrix
 from .. utils.mesh import get_coords
-from .. utils.modifier import remove_mod
+from .. utils.modifier import remove_mod, get_mod_obj
 from .. utils.ui import get_zoom_factor, get_flick_direction, init_status, finish_status
 from .. utils.draw import draw_vector, draw_circle, draw_point, draw_label, draw_bbox, draw_cross_3d
 from .. utils.system import printd
@@ -18,7 +18,6 @@ from .. items import axis_items, axis_index_mapping
 
 
 decalmachine = None
-hypercursor = None
 
 
 def draw_mirror(op):
@@ -370,21 +369,16 @@ class Mirror(bpy.types.Operator):
         self.active.select_set(True)
 
     def invoke(self, context, event):
-        global decalmachine, hypercursor
+        global decalmachine 
 
         if decalmachine is None:
             decalmachine = get_addon("DECALmachine")[0]
 
-        if hypercursor is None:
-            hypercursor = get_addon("HyperCursor")[0]
-
         self.decalmachine = decalmachine
 
         scene = context.scene
-        hc = scene.HC if hypercursor else None
 
         active_tool = get_active_tool(context).idname
-        self.cursor = hypercursor and 'machin3.tool_hyper_cursor' in active_tool and hc and hc.show_gizmos
 
         self.active = context.active_object
         self.sel = context.selected_objects
@@ -656,10 +650,12 @@ class Mirror(bpy.types.Operator):
 
     def get_misaligned_mods(self, context, active, mx, debug=False):
 
-        object_mirror_mods = [mod for mod in self.mirror_mods if (mod.type == 'MIRROR' and mod.mirror_object) or (mod.type == 'GP_MIRROR' and mod.object)]
+        object_mirror_mods = [mod for mod in self.mirror_mods if get_mod_obj(mod)]
         aligned = [mod for mod in self.mirror_mods if mod not in object_mirror_mods]
 
+
         if debug:
+            print()
             print("object mirrors:", object_mirror_mods)
             print("non-object mirrors:", aligned)
 
@@ -669,28 +665,11 @@ class Mirror(bpy.types.Operator):
                       'matrices': {},
                       'isallmisaligned': False}
 
-
         for mod in object_mirror_mods:
-            mirror_obj = mod.mirror_object if mod.type == 'MIRROR' else mod.object
-
+            mirror_obj = get_mod_obj(mod)
             mo_mx = mirror_obj.matrix_world
 
-            origin = mx.to_translation()
-
-            xyz = (mx.to_3x3() @ Vector((1, 1, 1))).normalized()
-            mo_xyz = (mo_mx.to_3x3() @ Vector((1, 1, 1))).normalized()
-
-            if debug:
-                draw_vector(xyz * 1.1, origin=origin, color=yellow, modal=False)
-                draw_vector(mo_xyz, origin=origin, color=blue, modal=False)
-                context.area.tag_redraw()
-
-            dot = round(xyz.dot(mo_xyz), 6)
-
-            if dot != 1:
-                if debug:
-                    print(mod.name, dot, "is mis-aligned")
-
+            if not compare_matrix(mx.to_3x3(), mo_mx.to_3x3(), precision=5):
                 misaligned['sorted_mods'].append(mod)
 
                 if mirror_obj not in misaligned['sorted_objects']:

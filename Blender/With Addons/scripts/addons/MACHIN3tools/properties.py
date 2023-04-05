@@ -327,6 +327,15 @@ class M3SceneProperties(bpy.types.PropertyGroup):
             if get_prefs().activate_transform_pie and get_prefs().custom_views_set_transform_preset:
                 bpy.ops.machin3.set_transform_preset(pivot='CURSOR' if self.custom_views_cursor else 'MEDIAN_POINT', orientation='CURSOR' if self.custom_views_cursor else 'GLOBAL')
 
+    def update_enforce_hide_render(self, context):
+        from . ui.operators import shading
+
+        for _, name in shading.render_visibility:
+            obj = bpy.data.objects.get(name)
+
+            if obj:
+                obj.hide_set(obj.visible_get())
+                
 
 
     eevee_preset: EnumProperty(name="Eevee Preset", description="Eevee Quality Presets", items=eevee_preset_items, default='NONE', update=update_eevee_preset)
@@ -342,14 +351,19 @@ class M3SceneProperties(bpy.types.PropertyGroup):
     shading_light: EnumProperty(name="Lighting Method", description="Lighting Method for Solid/Texture Viewport Shading", items=shading_light_items, default='MATCAP', update=update_shading_light)
     use_flat_shadows: BoolProperty(name="Use Flat Shadows", description="Use Shadows when in Flat Lighting", default=True, update=update_use_flat_shadows)
 
-    object_axes_size: FloatProperty(name="Object Axes Size", default=0.1, min=0)
-    object_axes_alpha: FloatProperty(name="Object Axes Alpha", default=0.5, min=0, max=1)
-    object_axes_screenspace: BoolProperty(name="Ojects Axes in Screen Space", default=True)
+    draw_axes_size: FloatProperty(name="Draw_Axes Size", default=0.1, min=0)
+    draw_axes_alpha: FloatProperty(name="Draw Axes Alpha", default=0.5, min=0, max=1)
+    draw_axes_screenspace: BoolProperty(name="Draw Axes in Screen Space", default=True)
+
+    draw_active_axes: BoolProperty(name="Draw Active Axes", description="Draw Active's Object Axes", default=False)
+    draw_cursor_axes: BoolProperty(name="Draw Cursor Axes", description="Draw Cursor's Axes", default=False)
 
     adjust_lights_on_render: BoolProperty(name="Adjust Lights when Rendering", description="Adjust Lights Area Lights when Rendering, to better match Eevee and Cycles", default=False)
     adjust_lights_on_render_divider: FloatProperty(name="Divider used to calculate Cycles Light Strength from Eeeve Light Strength", default=4, min=1)
     adjust_lights_on_render_last: StringProperty(name="Last Light Adjustment", default='NONE')
     is_light_decreased_by_handler: BoolProperty(name="Have Lights been decreased by the init render handler?", default=False)
+
+    enforce_hide_render: BoolProperty(name="Enforce hide_render setting when Viewport Rendering", description="Enfore hide_render setting for objects when Viewport Rendering", default=True, update=update_enforce_hide_render)
 
 
 
@@ -478,10 +492,6 @@ class M3SceneProperties(bpy.types.PropertyGroup):
 
 
     show_extrude: BoolProperty(name="Show Extrude")
-
-
-
-    draw_active_axes: BoolProperty(name="Draw Active Axes", default=False)
 
 
 

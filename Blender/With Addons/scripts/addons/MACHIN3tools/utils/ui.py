@@ -193,6 +193,31 @@ def draw_keymap_items(kc, name, keylist, layout):
     return drawn
 
 
+def get_keymap_item(name, idname, key=None, alt=False, ctrl=False, shift=False, properties=[]):
+    wm = bpy.context.window_manager
+    kc = wm.keyconfigs.user
+
+    km = kc.keymaps.get(name)
+
+    if bpy.app.version >= (3, 0, 0):
+        alt = int(alt)
+        ctrl = int(ctrl)
+        shift = int(shift)
+
+    if km:
+        kmi = km.keymap_items.get(idname)
+
+        if kmi:
+            found = True if key is None else all([kmi.type == key and kmi.alt is alt and kmi.ctrl is ctrl and kmi.shift is shift])
+
+            if found:
+                if properties:
+                    if all([getattr(kmi.properties, name, False) == prop for name, prop in properties]):
+                        return kmi
+                else:
+                    return kmi
+
+
 
 def init_status(self, context, title='', func=None):
     self.bar_orig = statusbar.draw

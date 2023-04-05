@@ -4,7 +4,7 @@ import shutil
 from .. utils.registration import get_prefs
 from .. utils.system import makedir
 from .. utils.view import reset_viewport
-from .. utils.ui import kmi_to_string
+from .. utils.ui import kmi_to_string, get_keymap_item
 
 
 class Customize(bpy.types.Operator):
@@ -448,6 +448,7 @@ class Customize(bpy.types.Operator):
                     kmi.value = "DOUBLE_CLICK"
                     kmi.ctrl = False
                     kmi.shift = True
+                    kmi.properties.delimit = {'SHARP'}
                     print(to_str, kmi_to_string(kmi, docs_mode=docs_mode))
 
                 if kmi.idname == "mesh.select_linked_pick":
@@ -456,6 +457,7 @@ class Customize(bpy.types.Operator):
                         kmi.type = "LEFTMOUSE"
                         kmi.value = "DOUBLE_CLICK"
                         kmi.alt = True
+                        kmi.properties.delimit = {'SHARP'}
                         print(to_str, kmi_to_string(kmi, docs_mode=docs_mode))
 
                     else:
@@ -984,6 +986,7 @@ class Customize(bpy.types.Operator):
                     kmi.value = "DOUBLE_CLICK"
                     kmi.ctrl = False
                     kmi.shift = True
+                    kmi.properties.delimit = {'SHARP'}
                     print(to_str, kmi_to_string(kmi, docs_mode=docs_mode))
 
                 if kmi.idname == "mesh.select_linked_pick":
@@ -992,6 +995,7 @@ class Customize(bpy.types.Operator):
                         kmi.type = "LEFTMOUSE"
                         kmi.value = "DOUBLE_CLICK"
                         kmi.alt = True
+                        kmi.properties.delimit = {'SHARP'}
                         print(to_str, kmi_to_string(kmi, docs_mode=docs_mode))
 
                     else:
@@ -1157,13 +1161,20 @@ class Customize(bpy.types.Operator):
 
         kc = context.window_manager.keyconfigs.user
 
-        if bpy.app.version <= (3, 1, 0):
+        if bpy.app.version < (3, 2, 0):
             modify_keymaps31(kc)
             add_keymaps31(kc)
 
         else:
             modify_keymaps32(kc)
             add_keymaps32(kc)
+
+
+        if getattr(bpy.types, "MACHIN3_MT_save_pie", False):
+            kmi = get_keymap_item('Window', 'machin3.save_versioned_startup_file')
+
+            if kmi:
+                kmi.active = True
 
 
         get_prefs().custom_keymaps = False
@@ -1319,6 +1330,7 @@ class Customize(bpy.types.Operator):
     def shading(self, context):
         print("\n» Setting up Shading and Rendering")
 
+
         areas = [area for screen in context.workspace.screens for area in screen.areas if area.type == "VIEW_3D"]
 
         for area in areas:
@@ -1371,22 +1383,46 @@ class Customize(bpy.types.Operator):
             print(" Disabled shading.use_scene_world_render")
             shading.use_scene_world_render = False
 
-            eevee = context.scene.eevee
 
-            print(" Enabled eevee.use_ssr")
-            eevee.use_ssr = True
 
-            print(" Enabled eevee.use_gtao")
-            eevee.use_gtao = True
+        eevee = context.scene.eevee
 
-            print(" Disabled eevee.use_volumetric_lights")
-            eevee.use_volumetric_lights = False
+        print(" Enabled eevee.use_ssr")
+        eevee.use_ssr = True
 
-            print(" Changed Render Engine to CYCLES")
-            context.scene.render.engine = 'CYCLES'
+        print(" Enabled eevee.use_gtao")
+        eevee.use_gtao = True
 
-            print(" Changed Cycles Devices to GPU")
-            context.scene.cycles.device = 'GPU'
+        print(" Disabled eevee.use_volumetric_lights")
+        eevee.use_volumetric_lights = False
+
+
+
+        cycles = context.scene.cycles
+
+        print(" Changed Render Engine to CYCLES")
+        context.scene.render.engine = 'CYCLES'
+
+        print(" Changed Cycles Devices to GPU")
+        cycles.device = 'GPU'
+
+        print(" Enabled cycle.use_preview_denoising")
+        cycles.use_preview_denoising = True
+
+        print(" Set cycles.preview_denoising_start_sample to 2")
+        cycles.preview_denoising_start_sample = 2
+
+        print(" Set cycles.preview_denoising_input_passes to 'NONE'")
+        cycles.preview_denoising_input_passes = 'RGB'
+
+        print(" Enabled Fast GI Approximation")
+        cycles.use_fast_gi = True
+
+        print(" Set cycles.ao_bounces to 2")
+        cycles.ao_bounces = 2
+
+        print(" Set cycles.ao_bounces_render to 2")
+        cycles.ao_bounces_render = 2
 
     def overlays(self, context):
         print("\n» Modifying Overlays")
@@ -1464,11 +1500,13 @@ class Customize(bpy.types.Operator):
 
         worldssourcepath = os.path.join(resourcespath, "worlds")
         worldstargetpath = makedir(os.path.join(datafilespath, "studiolights", "world"))
-        worlds = os.listdir(worldssourcepath)
 
-        for world in sorted(worlds):
-            shutil.copy(os.path.join(worldssourcepath, world), worldstargetpath)
-            print("  %s -> %s" % (world, worldstargetpath))
+        if os.path.exists(worldssourcepath):
+            worlds = os.listdir(worldssourcepath)
+
+            for world in sorted(worlds):
+                shutil.copy(os.path.join(worldssourcepath, world), worldstargetpath)
+                print("  %s -> %s" % (world, worldstargetpath))
 
     def bookmarks(self, context):
         print("\n» Setting Custom Bookmarks")

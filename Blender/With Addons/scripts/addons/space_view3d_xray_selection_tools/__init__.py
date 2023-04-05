@@ -20,8 +20,8 @@
 bl_info = {
     "name": "X-Ray Selection Tools",
     "author": "MarshmallowCirno",
-    "version": (4, 2, 6),
-    "blender": (3, 3, 1),
+    "version": (4, 3, 2),
+    "blender": (3, 4, 0),
     "location": "Toolbar > Selection Tools",
     "description": "Box, lasso and circle selection tools with x-ray",
     "warning": "",
@@ -33,6 +33,7 @@ bl_info = {
 
 reloadable_modules = (
     "view3d",
+    "timer",
     "polygon_tests",
     "selection",
     "mesh_intersect",
@@ -57,17 +58,28 @@ reloadable_modules = (
     "ui_preferences",
 )
 
-
 # when bpy is already in local, we know this is not the initial import...
 if "bpy" in locals():
     # ...so we need to reload our submodule(s) using importlib
     import importlib
+
     for module in reloadable_modules:
         if module in locals():
             importlib.reload(locals()[module])
 else:
-    from .functions import mesh_intersect, mesh_modal, object_intersect, object_intersect_box, \
-        object_intersect_circle, object_intersect_lasso, object_modal, polygon_tests, selection, view3d
+    from .functions import (
+        mesh_intersect,
+        mesh_modal,
+        object_intersect,
+        object_intersect_box,
+        object_intersect_circle,
+        object_intersect_lasso,
+        object_modal,
+        polygon_tests,
+        selection,
+        timer,
+        view3d,
+    )
     from .mesh_ot import mesh_ot_box, mesh_ot_circle, mesh_ot_lasso, mesh_ot
     from .object_ot import object_ot_box, object_ot_circle, object_ot_lasso
     from . import help, ot_keymap, tools, tools_dummy, ui_preferences

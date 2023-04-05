@@ -5,18 +5,31 @@ from gpu_extras.batch import batch_for_shader
 from gpu_extras.presets import draw_circle_2d
 import blf
 from . wm import get_last_operators
-from . registration import get_prefs
+from . registration import get_prefs, get_addon
 from . ui import require_header_offset, get_zoom_factor
+from . tools import get_active_tool
 from .. colors import red, green, blue, black, white
 
 
+hypercursor = None
+
 def draw_axes_HUD(context, objects):
+    global hypercursor
+    
+    if not hypercursor:
+        hypercursor = get_addon('HyperCursor')[0]
+
+
     if context.space_data.overlay.show_overlays:
         m3 = context.scene.M3
 
-        size = m3.object_axes_size
-        alpha = m3.object_axes_alpha
-        screenspace = m3.object_axes_screenspace
+        size = m3.draw_axes_size
+        alpha = m3.draw_axes_alpha - 0.001
+        screenspace = m3.draw_axes_screenspace
+        ui_scale = context.preferences.view.ui_scale
+
+        show_cursor = context.space_data.overlay.show_cursor
+        show_hyper_cursor = hypercursor and get_active_tool(context).idname in ['machin3.tool_hyper_cursor', 'machin3.tool_hyper_cursor_simple'] and context.scene.HC.show_gizmos
 
         axes = [(Vector((1, 0, 0)), red), (Vector((0, 1, 0)), green), (Vector((0, 0, 1)), blue)]
 
@@ -24,14 +37,36 @@ def draw_axes_HUD(context, objects):
             coords = []
 
             for obj in objects:
-                if str(obj) != '<bpy_struct, Object invalid>':
+
+
+                if obj == 'CURSOR':
+
+                    if not show_hyper_cursor:
+                        mx = context.scene.cursor.matrix
+                        origin = mx.decompose()[0]
+
+                        factor = get_zoom_factor(context, origin, scale=300, ignore_obj_scale=True) if screenspace else 1
+
+                        if show_cursor and screenspace:
+                            coords.append(origin + (mx.to_3x3() @ axis).normalized() * 0.1 * ui_scale * factor * 0.8)
+                            coords.append(origin + (mx.to_3x3() @ axis).normalized() * 0.1 * ui_scale * factor * 1.2)
+
+                        else:
+                            coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * ui_scale * factor * 0.9)
+                            coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * ui_scale * factor)
+
+                            coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * ui_scale * factor * 0.1)
+                            coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * ui_scale * factor * 0.7)
+
+
+                elif str(obj) != '<bpy_struct, Object invalid>':
                     mx = obj.matrix_world
                     origin = mx.decompose()[0]
 
                     factor = get_zoom_factor(context, origin, scale=300, ignore_obj_scale=True) if screenspace else 1
 
-                    coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * factor * 0.1)
-                    coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * factor)
+                    coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * ui_scale * factor * 0.1)
+                    coords.append(origin + (mx.to_3x3() @ axis).normalized() * size * ui_scale * factor)
 
 
             if coords:

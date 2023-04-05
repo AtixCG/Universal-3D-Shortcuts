@@ -1,15 +1,17 @@
+from struct import pack
+
 import bpy
 import gpu
-from struct import pack
-from gpu_extras.batch import batch_for_shader
 from bgl import glEnable, glDisable, GL_BLEND
+from gpu_extras.batch import batch_for_shader
+
 from ..functions.mesh_intersect import select_mesh_elems
 from ..functions.mesh_modal import *
 
 
 # https://docs.blender.org/api/blender2.8/gpu.html#custom-shader-for-dotted-3d-line
 # https://stackoverflow.com/questions/52928678/dashed-line-in-opengl3
-crosshair_vertex_shader = '''
+CROSSHAIR_VERTEX_SHADER = '''
     in vec2 pos;
     in float len;
     out float v_Len;
@@ -24,7 +26,7 @@ crosshair_vertex_shader = '''
         gl_Position = u_ViewProjectionMatrix * vec4(pos.x + u_X, pos.y + u_Y, 0.0f, 1.0f);
     }
 '''
-crosshair_fragment_shader = '''
+CROSSHAIR_FRAGMENT_SHADER = '''
     in float v_Len;
     out vec4 fragColor;
 
@@ -43,7 +45,7 @@ crosshair_fragment_shader = '''
         fragColor = col;
     }
 '''
-fill_vertex_shader = '''
+FILL_VERTEX_SHADER = '''
     in vec2 pos;
 
     uniform mat4 u_ViewProjectionMatrix;
@@ -58,7 +60,7 @@ fill_vertex_shader = '''
         pos.y * u_Height + u_Y, 0.0f, 1.0f);
     }
 '''
-fill_fragment_shader = '''
+FILL_FRAGMENT_SHADER = '''
     out vec4 fragColor;
 
     uniform vec4 u_FillColor;
@@ -68,7 +70,7 @@ fill_fragment_shader = '''
         fragColor = u_FillColor;
     }
 '''
-border_vertex_shader = '''
+BORDER_VERTEX_SHADER = '''
     in vec2 pos;
     in vec2 len;
     out float v_Len;
@@ -86,7 +88,7 @@ border_vertex_shader = '''
         pos.y * u_Height + u_Y, 0.0f, 1.0f);
     }
 '''
-border_fragment_shader = '''
+BORDER_FRAGMENT_SHADER = '''
     in float v_Len;
     out vec4 fragColor;
 
@@ -106,9 +108,9 @@ border_fragment_shader = '''
             fragColor = col;
     }
 '''
-crosshair_shader = gpu.types.GPUShader(crosshair_vertex_shader, crosshair_fragment_shader)
-fill_shader = gpu.types.GPUShader(fill_vertex_shader, fill_fragment_shader)
-border_shader = gpu.types.GPUShader(border_vertex_shader, border_fragment_shader)
+crosshair_shader = gpu.types.GPUShader(CROSSHAIR_VERTEX_SHADER, CROSSHAIR_FRAGMENT_SHADER)  # noqa
+fill_shader = gpu.types.GPUShader(FILL_VERTEX_SHADER, FILL_FRAGMENT_SHADER)  # noqa
+border_shader = gpu.types.GPUShader(BORDER_VERTEX_SHADER, BORDER_FRAGMENT_SHADER)  # noqa
 
 
 # noinspection PyTypeChecker
@@ -121,74 +123,78 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
     mode: bpy.props.EnumProperty(
         name="Mode",
         description="Default selection mode",
-        items=[('SET', "Set", "Set a new selection", 'SELECT_SET', 1),
-               ('ADD', "Extend", "Extend existing selection", 'SELECT_EXTEND', 2),
-               ('SUB', "Subtract", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
-               ('XOR', "Difference", "Inverts existing selection", 'SELECT_DIFFERENCE', 4),
-               ('AND', "Intersect", "Intersect existing selection", 'SELECT_INTERSECT', 5)
-               ],
+        items=[
+            ('SET', "Set", "Set a new selection", 'SELECT_SET', 1),
+            ('ADD', "Extend", "Extend existing selection", 'SELECT_EXTEND', 2),
+            ('SUB', "Subtract", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
+            ('XOR', "Difference", "Inverts existing selection", 'SELECT_DIFFERENCE', 4),
+            ('AND', "Intersect", "Intersect existing selection", 'SELECT_INTERSECT', 5),
+        ],
         default='SET',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     alt_mode: bpy.props.EnumProperty(
         name="Alternate Mode",
         description="Alternate selection mode",
-        items=[('SET', "Select", "Set a new selection", 'SELECT_SET', 1),
-               ('ADD', "Extend Selection", "Extend existing selection", 'SELECT_EXTEND', 2),
-               ('SUB', "Deselect", "Subtract existing selection", 'SELECT_SUBTRACT', 3)
-               ],
+        items=[
+            ('SET', "Select", "Set a new selection", 'SELECT_SET', 1),
+            ('ADD', "Extend Selection", "Extend existing selection", 'SELECT_EXTEND', 2),
+            ('SUB', "Deselect", "Subtract existing selection", 'SELECT_SUBTRACT', 3),
+        ],
         default='SUB',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     alt_mode_toggle_key: bpy.props.EnumProperty(
         name="Alternate Mode Toggle Key",
         description="Toggle selection mode by holding this key",
-        items=[('CTRL', "CTRL", ""),
-               ('ALT', "ALT", ""),
-               ('SHIFT', "SHIFT", "")
-               ],
+        items=[
+            ('CTRL', "CTRL", ""),
+            ('ALT', "ALT", ""),
+            ('SHIFT', "SHIFT", ""),
+        ],
         default='SHIFT',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     wait_for_input: bpy.props.BoolProperty(
         name="Wait for Input",
         description="Wait for mouse input or initialize box selection immediately (usually you "
                     "should enable it when you assign the operator to a keyboard key)",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     override_global_props: bpy.props.BoolProperty(
         name="Override Global Properties",
-        description="Use properties in this keymaps item instead of properties in the global "
-                    "addon settings",
+        description="Use properties in this keymaps item instead of properties in the global addon settings",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through: bpy.props.BoolProperty(
         name="Select Through",
         description="Select verts, faces and edges laying underneath",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through_toggle_key: bpy.props.EnumProperty(
         name="Selection Through Toggle Key",
         description="Toggle selection through by holding this key",
-        items=[('CTRL', "CTRL", ""),
-               ('ALT', "ALT", ""),
-               ('SHIFT', "SHIFT", ""),
-               ('DISABLED', "DISABLED", "")
-               ],
+        items=[
+            ('CTRL', "CTRL", ""),
+            ('ALT', "ALT", ""),
+            ('SHIFT', "SHIFT", ""),
+            ('DISABLED', "DISABLED", ""),
+        ],
         default='DISABLED',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through_toggle_type: bpy.props.EnumProperty(
         name="Selection Through Toggle Press / Hold",
         description="Toggle selection through by holding or by pressing key",
-        items=[('HOLD', "Holding", ""),
-               ('PRESS', "Pressing", "")
-               ],
+        items=[
+            ('HOLD', "Holding", ""),
+            ('PRESS', "Pressing", ""),
+        ],
         default='HOLD',
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     default_color: bpy.props.FloatVectorProperty(
         name="Default Color",
@@ -198,7 +204,7 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         soft_max=1.0,
         size=3,
         default=(1.0, 1.0, 1.0),
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_through_color: bpy.props.FloatVectorProperty(
         name="Select Through Color",
@@ -208,13 +214,13 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         soft_max=1.0,
         size=3,
         default=(1.0, 1.0, 1.0),
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     show_xray: bpy.props.BoolProperty(
         name="Show X-Ray",
         description="Enable x-ray shading during selection",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_all_edges: bpy.props.BoolProperty(
         name="Select All Edges",
@@ -222,7 +228,7 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
                     "not just the ones completely inside the selection box. Works only in "
                     "select through mode",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     select_all_faces: bpy.props.BoolProperty(
         name="Select All Faces",
@@ -230,25 +236,25 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
                     "not just the ones with centers inside the selection box. Works only in "
                     "select through mode",
         default=False,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     hide_mirror: bpy.props.BoolProperty(
         name="Hide Mirror",
         description="Hide mirror modifiers during selection",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     hide_solidify: bpy.props.BoolProperty(
         name="Hide Solidify",
         description="Hide solidify modifiers during selection",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
     show_crosshair: bpy.props.BoolProperty(
         name="Show Crosshair",
         description="Show crosshair when wait_for_input is enabled",
         default=True,
-        options={'SKIP_SAVE'}
+        options={'SKIP_SAVE'},
     )
 
     @classmethod
@@ -285,36 +291,40 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         self.unif_fill_color = None
 
     def invoke(self, context, event):
-        # set operator properties from addon preferences
+        # Set operator properties from addon preferences.
         set_properties_from_preferences(self, tool='BOX')
 
-        self.override_intersect_tests = \
-            self.select_all_faces and context.tool_settings.mesh_select_mode[2] or \
-            self.select_all_edges and context.tool_settings.mesh_select_mode[1]
+        self.override_intersect_tests = (
+            self.select_all_faces
+            and context.tool_settings.mesh_select_mode[2]
+            or self.select_all_edges
+            and context.tool_settings.mesh_select_mode[1]
+        )
 
-        self.override_selection = \
-            self.select_through_toggle_key != 'DISABLED' or \
-            self.alt_mode_toggle_key != 'SHIFT' or \
-            self.alt_mode != 'SUB' or \
-            not self.select_through and self.default_color[:] != (1.0, 1.0, 1.0) or \
-            self.select_through and self.select_through_color[:] != (1.0, 1.0, 1.0) or \
-            self.directional or \
-            self.override_intersect_tests
+        self.override_selection = (
+            self.select_through_toggle_key != 'DISABLED'
+            or self.alt_mode_toggle_key != 'SHIFT'
+            or self.alt_mode != 'SUB'
+            or not self.select_through
+            and self.default_color[:] != (1.0, 1.0, 1.0)
+            or self.select_through
+            and self.select_through_color[:] != (1.0, 1.0, 1.0)
+            or self.directional
+            or self.override_intersect_tests
+        )
 
-        self.override_wait_for_input = \
-            not self.show_crosshair or \
-            self.override_selection
+        self.override_wait_for_input = not self.show_crosshair or self.override_selection
 
         self.init_mods = gather_modifiers(self, context)  # save initial modifier states
         self.init_overlays = gather_overlays(context)  # save initial x-ray overlay states
 
-        # set x-ray overlays and modifiers
+        # Set x-ray overlays and modifiers.
         initialize_shading_from_properties(self, context)
         set_modifiers_from_properties(self)
 
         context.window_manager.modal_handler_add(self)
 
-        # jump to
+        # Jump to.
         if self.wait_for_input and self.override_wait_for_input:
             self.begin_custom_wait_for_input_stage(context, event)
         elif self.override_selection:
@@ -326,21 +336,23 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
 
     def modal(self, context, event):
         if self.stage == 'CUSTOM_WAIT_FOR_INPUT':
-            # update shader
+            # Update shader.
             if event.type == 'MOUSEMOVE':
                 self.update_shader_position(context, event)
 
-            # toggle modifiers and overlays
+            # Toggle modifiers and overlays.
             if event.type in self.select_through_toggle_key_list:
-                if event.value in {'PRESS', 'RELEASE'} and \
-                        self.select_through_toggle_type == 'HOLD' or \
-                        event.value == 'PRESS' and \
-                        self.select_through_toggle_type == 'PRESS':
+                if (
+                    event.value in {'PRESS', 'RELEASE'}
+                    and self.select_through_toggle_type == 'HOLD'
+                    or event.value == 'PRESS'
+                    and self.select_through_toggle_type == 'PRESS'
+                ):
                     self.invert_select_through = not self.invert_select_through
                     set_shading_from_properties(self, context)
                     update_shader_color(self, context)
 
-            # finish stage
+            # Finish stage.
             if event.value == 'PRESS' and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE'}:
                 self.finish_custom_wait_for_input_stage(context)
                 toggle_alt_mode(self, event)
@@ -350,27 +362,33 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
                     self.invoke_inbuilt_box_select()
 
         if self.stage == 'CUSTOM_SELECTION':
-            # update shader
+            # Update shader.
             if event.type == 'MOUSEMOVE':
                 self.update_direction_and_properties(context)
                 self.update_shader_position(context, event)
 
-            # toggle modifiers and overlays
+            # Toggle modifiers and overlays.
             if event.type in self.select_through_toggle_key_list:
-                if event.value in {'PRESS', 'RELEASE'} and \
-                        self.select_through_toggle_type == 'HOLD' or \
-                        event.value == 'PRESS' and \
-                        self.select_through_toggle_type == 'PRESS':
+                if (
+                    event.value in {'PRESS', 'RELEASE'}
+                    and self.select_through_toggle_type == 'HOLD'
+                    or event.value == 'PRESS'
+                    and self.select_through_toggle_type == 'PRESS'
+                ):
                     self.invert_select_through = not self.invert_select_through
                     set_shading_from_properties(self, context)
                     update_shader_color(self, context)
 
-            # finish stage
-            if event.value in {'RELEASE'} and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE', 'RIGHTMOUSE'}:
+            # Finish stage.
+            if event.value == 'RELEASE' and event.type in {'LEFTMOUSE', 'MIDDLEMOUSE', 'RIGHTMOUSE'}:
                 self.finish_custom_selection_stage(context)
-                if self.override_intersect_tests and (self.select_through and not self.invert_select_through or
-                                                      not self.select_through and self.invert_select_through):
-                    self.begin_custom_intersect_tests(context, )
+                if self.override_intersect_tests and (
+                    self.select_through
+                    and not self.invert_select_through
+                    or not self.select_through
+                    and self.invert_select_through
+                ):
+                    self.begin_custom_intersect_tests(context)
                     self.finish_modal(context)
                     bpy.ops.ed.undo_push(message="Box Select")
                     return {'FINISHED'}
@@ -381,12 +399,12 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
                     return {'FINISHED'}
 
         if self.stage == 'INBUILT_OP':
-            # inbuilt op was finished, now finish modal
+            # Inbuilt op was finished, now finish modal.
             if event.type == 'MOUSEMOVE':
                 self.finish_modal(context)
                 return {'FINISHED'}
 
-        # cancel modal
+        # Cancel modal.
         if event.type in {'ESC', 'RIGHTMOUSE'}:
             if self.stage == 'CUSTOM_WAIT_FOR_INPUT':
                 self.finish_custom_wait_for_input_stage(context)
@@ -398,25 +416,25 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def begin_custom_wait_for_input_stage(self, context, event):
-        """Set status text, draw wait_for_input shader"""
+        """Set status text, draw wait_for_input shader."""
         self.stage = 'CUSTOM_WAIT_FOR_INPUT'
         enum_items = self.properties.bl_rna.properties["mode"].enum_items
         curr_mode_name = enum_items[self.curr_mode].name
         enum_items = self.properties.bl_rna.properties["alt_mode"].enum_items
         alt_mode_name = enum_items[self.alt_mode].name
-        status_text = "RMB, ESC: Cancel  |  LMB: %s  |  %s+LMB: %s" \
-                      % (curr_mode_name, self.alt_mode_toggle_key, alt_mode_name)
+
+        status_text = f"RMB, ESC: Cancel  |  LMB: {curr_mode_name}  |  {self.alt_mode_toggle_key}+LMB: {alt_mode_name}"
         if self.select_through_toggle_key != 'DISABLED':
-            status_text += "  |  %s: Toggle Select Through" % self.select_through_toggle_key
+            status_text += f"  |  {self.select_through_toggle_key}: Toggle Select Through"
         context.workspace.status_text_set(text=status_text)
+
         if self.show_crosshair:
             self.build_crosshair_shader(context)
-            self.handler = context.space_data.draw_handler_add(
-                self.draw_crosshair_shader, (), 'WINDOW', 'POST_PIXEL')
+            self.handler = context.space_data.draw_handler_add(self.draw_crosshair_shader, (), 'WINDOW', 'POST_PIXEL')
             self.update_shader_position(context, event)
 
     def finish_custom_wait_for_input_stage(self, context):
-        """Restore status text, remove wait_for_input shader"""
+        """Restore status text, remove wait_for_input shader."""
         self.wait_for_input = False
         context.workspace.status_text_set(text=None)
         if self.show_crosshair:
@@ -425,16 +443,16 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
 
     def begin_custom_selection_stage(self, context, event):
         self.stage = 'CUSTOM_SELECTION'
+
         status_text = "RMB, ESC: Cancel"
         if self.select_through_toggle_key != 'DISABLED':
-            status_text += "  |  %s: Toggle Select Through" % self.select_through_toggle_key
+            status_text += f"  |  {self.select_through_toggle_key}: Toggle Select Through"
         context.workspace.status_text_set(text=status_text)
 
         self.start_mouse_region_x = event.mouse_region_x
         self.start_mouse_region_y = event.mouse_region_y
         self.build_box_shader()
-        self.handler = context.space_data.draw_handler_add(
-            self.draw_box_shader, (), 'WINDOW', 'POST_PIXEL')
+        self.handler = context.space_data.draw_handler_add(self.draw_box_shader, (), 'WINDOW', 'POST_PIXEL')
         self.update_shader_position(context, event)
 
     def finish_custom_selection_stage(self, context):
@@ -444,30 +462,33 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
 
     def invoke_inbuilt_box_select(self):
         self.stage = 'INBUILT_OP'
-        bpy.ops.view3d.select_box('INVOKE_DEFAULT', mode=self.curr_mode,
-                                  wait_for_input=self.wait_for_input)
+        bpy.ops.view3d.select_box('INVOKE_DEFAULT', mode=self.curr_mode, wait_for_input=self.wait_for_input)
 
     def exec_inbuilt_box_select(self):
-        # get selection rectangle coordinates
+        # Get selection rectangle coordinates.
         xmin = min(self.start_mouse_region_x, self.last_mouse_region_x)
         xmax = max(self.start_mouse_region_x, self.last_mouse_region_x)
         ymin = min(self.start_mouse_region_y, self.last_mouse_region_y)
         ymax = max(self.start_mouse_region_y, self.last_mouse_region_y)
-        bpy.ops.view3d.select_box(mode=self.curr_mode, wait_for_input=False,
-                                  xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
+        bpy.ops.view3d.select_box(mode=self.curr_mode, wait_for_input=False, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
 
     def begin_custom_intersect_tests(self, context):
-        # get selection rectangle coordinates
+        # Get selection rectangle coordinates.
         xmin = min(self.start_mouse_region_x, self.last_mouse_region_x)
         xmax = max(self.start_mouse_region_x, self.last_mouse_region_x)
         ymin = min(self.start_mouse_region_y, self.last_mouse_region_y)
         ymax = max(self.start_mouse_region_y, self.last_mouse_region_y)
         box = (xmin, xmax, ymin, ymax)
 
-        # do selection
-        select_mesh_elems(context, mode=self.curr_mode, tool=0, tool_co=box,
-                          select_all_edges=self.select_all_edges,
-                          select_all_faces=self.select_all_faces)
+        # Do selection.
+        select_mesh_elems(
+            context,
+            mode=self.curr_mode,
+            tool='BOX',
+            tool_co=box,
+            select_all_edges=self.select_all_edges,
+            select_all_faces=self.select_all_faces,
+        )
 
     def finish_modal(self, context):
         restore_overlays(self, context)
@@ -483,9 +504,12 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
             if _ != self.direction:
                 self.direction = _
                 set_properties_from_direction(self, self.direction)
-                self.override_intersect_tests = \
-                    self.select_all_faces and context.tool_settings.mesh_select_mode[2] or \
-                    self.select_all_edges and context.tool_settings.mesh_select_mode[1]
+                self.override_intersect_tests = (
+                    self.select_all_faces
+                    and context.tool_settings.mesh_select_mode[2]
+                    or self.select_all_edges
+                    and context.tool_settings.mesh_select_mode[1]
+                )
                 set_shading_from_properties(self, context)
 
     def update_shader_position(self, context, event):
@@ -497,10 +521,7 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         width = context.region.width
         height = context.region.height
 
-        vertices = ((0, -height),
-                    (0, height),
-                    (-width, 0),
-                    (width, 0))
+        vertices = ((0, -height), (0, height), (-width, 0), (width, 0))
         lengths = (0, 2 * height, 0, 2 * width)
 
         self.crosshair_batch = batch_for_shader(crosshair_shader, 'LINES', {"pos": vertices, "len": lengths})
@@ -509,8 +530,12 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
 
     def draw_crosshair_shader(self):
         matrix = gpu.matrix.get_projection_matrix()
-        if self.select_through and not self.invert_select_through or \
-                not self.select_through and self.invert_select_through:
+        if (
+            self.select_through
+            and not self.invert_select_through
+            or not self.select_through
+            and self.invert_select_through
+        ):
             segment_color = (*self.select_through_color, 1)
         else:
             segment_color = (*self.default_color, 1)
@@ -520,8 +545,8 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         crosshair_shader.uniform_float("u_ViewProjectionMatrix", matrix)
         crosshair_shader.uniform_float("u_X", self.last_mouse_region_x)
         crosshair_shader.uniform_float("u_Y", self.last_mouse_region_y)
-        crosshair_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4)
-        crosshair_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4)
+        crosshair_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4, 1)
+        crosshair_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4, 1)
         self.crosshair_batch.draw(crosshair_shader)
 
     def build_box_shader(self):
@@ -539,8 +564,12 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
 
     def draw_box_shader(self):
         matrix = gpu.matrix.get_projection_matrix()
-        if self.select_through and not self.invert_select_through or \
-                not self.select_through and self.invert_select_through:
+        if (
+            self.select_through
+            and not self.invert_select_through
+            or not self.select_through
+            and self.invert_select_through
+        ):
             segment_color = (*self.select_through_color, 1)
             fill_color = (*self.select_through_color, 0.04)
         else:
@@ -552,7 +581,7 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         width = self.last_mouse_region_x - self.start_mouse_region_x
         height = self.last_mouse_region_y - self.start_mouse_region_y
 
-        # fill
+        # Fill.
         glEnable(GL_BLEND)
         fill_shader.bind()
         fill_shader.uniform_float("u_ViewProjectionMatrix", matrix)
@@ -560,13 +589,13 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         fill_shader.uniform_float("u_Y", self.start_mouse_region_y)
         fill_shader.uniform_float("u_Height", height)
         fill_shader.uniform_float("u_Width", width)
-        fill_shader.uniform_vector_float(self.unif_fill_color, pack("4f", *fill_color), 4)
+        fill_shader.uniform_vector_float(self.unif_fill_color, pack("4f", *fill_color), 4, 1)
         self.fill_batch.draw(fill_shader)
         glDisable(GL_BLEND)
 
         dashed = 0 if self.direction == "RIGHT_TO_LEFT" else 1
 
-        # border
+        # Border.
         border_shader.bind()
         border_shader.uniform_float("u_ViewProjectionMatrix", matrix)
         border_shader.uniform_float("u_X", self.start_mouse_region_x)
@@ -574,30 +603,30 @@ class MESH_OT_select_box_xray(bpy.types.Operator):
         border_shader.uniform_float("u_Height", height)
         border_shader.uniform_float("u_Width", width)
         border_shader.uniform_int("u_Dashed", dashed)
-        border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4)
-        border_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4)
+        border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *segment_color), 4, 1)
+        border_shader.uniform_vector_float(self.unif_gap_color, pack("4f", *gap_color), 4, 1)
         self.border_batch.draw(border_shader)
 
         if not dashed:
-            # solid border shadow
+            # Solid border shadow.
             border_shader.uniform_float("u_X", self.start_mouse_region_x + 1)
             border_shader.uniform_float("u_Y", self.start_mouse_region_y - 1)
-            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *shadow_color), 4)
+            border_shader.uniform_vector_float(self.unif_segment_color, pack("4f", *shadow_color), 4, 1)
             self.border_batch.draw(border_shader)
 
 
-classes = (
-    MESH_OT_select_box_xray,
-)
+classes = (MESH_OT_select_box_xray,)
 
 
 def register():
     from bpy.utils import register_class
+
     for cls in classes:
         register_class(cls)
 
 
 def unregister():
     from bpy.utils import unregister_class
+
     for cls in classes:
         unregister_class(cls)

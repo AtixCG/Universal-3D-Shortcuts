@@ -1,10 +1,10 @@
 bl_info = {
     "name": "MACHIN3tools",
     "author": "MACHIN3, TitusLVR",
-    "version": (1, 2, 0),
-    "blender": (3, 0, 0),
+    "version": (1, 3, 0),
+    "blender": (3, 3, 0),
     "location": "",
-    "description": "Streamlining Blender 3.0+.",
+    "description": "Streamlining Blender 3.3+.",
     "warning": "",
     "doc_url": "https://machin3.io/MACHIN3tools/docs",
     "category": "Mesh"}

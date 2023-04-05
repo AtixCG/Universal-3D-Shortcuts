@@ -155,7 +155,10 @@ def join(target, objects, select=[]):
     bm.normal_update()
     bm.verts.ensure_lookup_table()
 
-    i = bm.faces.layers.int.verify()
+    select_layer = bm.faces.layers.int.get('Machin3FaceSelect')
+
+    if not select_layer:
+        select_layer = bm.faces.layers.int.new('Machin3FaceSelect')
 
     if any([obj.data.use_auto_smooth for obj in objects]):
         target.data.use_auto_smooth = True
@@ -170,13 +173,16 @@ def join(target, objects, select=[]):
         bmm.normal_update()
         bmm.verts.ensure_lookup_table()
 
-        im = bmm.faces.layers.int.verify()
+        obj_select_layer = bmm.faces.layers.int.get('Machin3FaceSelect')
+
+        if not obj_select_layer:
+            obj_select_layer = bmm.faces.layers.int.new('Machin3FaceSelect')
 
         for f in bmm.faces:
-            f[im] = idx + 1
+            f[obj_select_layer] = idx + 1
 
         bmm.to_mesh(mesh)
-        bmm.clear()
+        bmm.free()
 
         bm.from_mesh(mesh)
 
@@ -184,8 +190,8 @@ def join(target, objects, select=[]):
 
     if select:
         for f in bm.faces:
-            if f[i] in select:
+            if f[select_layer] in select:
                 f.select_set(True)
 
     bm.to_mesh(target.data)
-    bm.clear()
+    bm.free()

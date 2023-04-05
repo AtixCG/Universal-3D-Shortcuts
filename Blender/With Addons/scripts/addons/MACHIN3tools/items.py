@@ -138,6 +138,12 @@ create_assembly_asset_empty_collection_items = [('SCENECOL', 'Add to Scene Colle
                                                 ('OBJCOLS', 'Add to Object Collections', '')]
 
 
+shade_mode_items = [('SMOOTH', 'Smooth', ''),
+                    ('FLAT', 'Flat', '')]
+
+
+
+
 eevee_preset_items = [('NONE', 'None', ''),
                       ('LOW', 'Low', 'Use Scene Lights, Ambient Occlusion and Screen Space Reflections'),
                       ('HIGH', 'High', 'Use Bloom and Screen Space Refractions'),

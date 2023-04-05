@@ -33,6 +33,11 @@ class PieModes(Menu):
 
         active = context.active_object
 
+        global hypercursor
+
+        if hypercursor is None:
+            hypercursor = get_addon("HyperCursor")[0]
+
         pie = layout.menu_pie()
 
         if active:
@@ -60,7 +65,22 @@ class PieModes(Menu):
 
                             self.draw_mesh_modes(context, pie)
 
-                            pie.separator()
+                            if context.mode == 'EDIT_MESH' and hypercursor:
+                                box = pie.split()
+                                column = box.column()
+
+                                row = column.row(align=True)
+                                row.scale_y = 1.2
+
+                                row.label(text="Gizmos")
+
+                                row.operator("machin3.toggle_gizmo_data_layer_preview", text="Preview", depress=active.HC.show_geometry_gizmo_previews)
+
+                                if tuple(bpy.context.scene.tool_settings.mesh_select_mode) in [(False, True, False), (False, False, True)]:
+                                    row.operator("machin3.toggle_gizmo", text="Toggle")
+
+                            else:
+                                pie.separator()
 
                             if get_prefs().activate_surface_slide:
                                 hassurfaceslide = [mod for mod in active.modifiers if mod.type == 'SHRINKWRAP' and 'SurfaceSlide' in mod.name]
@@ -854,16 +874,21 @@ class PieShading(Menu):
         elif context.mode == "EDIT_MESH":
             r.active = view.shading.show_xray
             r.prop(view.shading, "xray_alpha", text="X-Ray")
-        hasobjectaxes = m3.draw_active_axes or any([obj.M3.draw_axes for obj in context.visible_objects])
+
+        hasaxes = m3.draw_cursor_axes or m3.draw_active_axes or any([obj.M3.draw_axes for obj in context.visible_objects])
 
         row = column.split(factor=0.4, align=True)
-        row.prop(m3, "draw_active_axes", text="Active's Axes", icon='EMPTY_AXIS')
+        rs = row.split(factor=0.5, align=True)
+        rs.prop(m3, "draw_active_axes", text="Active", icon='EMPTY_AXIS')
+        rs.prop(m3, "draw_cursor_axes", text="Cursor", icon='PIVOT_CURSOR')
 
         r = row.row(align=True)
-        r.active = hasobjectaxes
-        r.prop(m3, "object_axes_screenspace", text="", icon='WORKSPACE')
-        r.prop(m3, "object_axes_size", text="")
-        r.prop(m3, "object_axes_alpha", text="")
+        r.active = hasaxes
+        r.prop(m3, "draw_axes_screenspace", text="", icon='WORKSPACE')
+        r.prop(m3, "draw_axes_size", text="")
+        r.prop(m3, "draw_axes_alpha", text="")
+
+
 
     def draw_solid_box(self, context, view, layout):
         shading = context.space_data.shading
@@ -942,15 +967,15 @@ class PieShading(Menu):
                 row.prop(active, "show_in_front", text="In Front")
 
 
-
         if active.type == "MESH":
             mesh = active.data
+            angles = [int(a) for a in get_prefs().auto_smooth_angle_presets.split(',')]
 
             column.separator()
             row = column.split(factor=0.55, align=True)
             r = row.row(align=True)
-            r.operator("machin3.shade_smooth", text="Smooth", icon_value=get_icon('smooth'))
-            r.operator("machin3.shade_flat", text="Flat", icon_value=get_icon('flat'))
+            r.operator("machin3.shade", text="Smooth", icon_value=get_icon('smooth')).mode = 'SMOOTH'
+            r.operator("machin3.shade", text="Flat", icon_value=get_icon('flat')).mode = 'FLAT'
 
             icon = "CHECKBOX_HLT" if mesh.use_auto_smooth else "CHECKBOX_DEHLT"
             row.operator("machin3.toggle_auto_smooth", text="AutoSmooth", icon=icon).angle = 0
@@ -958,7 +983,8 @@ class PieShading(Menu):
             row = column.split(factor=0.55, align=True)
             r = row.row(align=True)
             r.active = not mesh.has_custom_normals
-            for angle in [30, 60, 90, 180]:
+
+            for angle in angles:
                 r.operator("machin3.toggle_auto_smooth", text=str(angle)).angle = angle
 
             r = row.row(align=True)
@@ -1028,6 +1054,12 @@ class PieShading(Menu):
                 rr = r.row(align=True)
                 rr.active = view.overlay.show_curve_normals
                 rr.prop(view.overlay, "normals_length", text="Length")
+
+            column.separator()
+            row = column.split(factor=0.5, align=True)
+            row.operator("machin3.shade", text="Smooth", icon_value=get_icon('smooth')).mode = 'SMOOTH'
+            row.operator("machin3.shade", text="Flat", icon_value=get_icon('flat')).mode = 'FLAT'
+
 
     def draw_shade_box(self, context, view, layout):
         column = layout.column(align=True)
@@ -1184,7 +1216,17 @@ class PieShading(Menu):
                                             row.prop(color, "default_value", text="")
 
             if view.shading.type == 'RENDERED':
-                column.prop(context.scene.render, 'film_transparent')
+                enforce_hide_render = get_prefs().activate_render and get_prefs().render_enforce_hide_render
+
+                if enforce_hide_render:
+                    row = column.split(factor=0.5, align=True)
+                else:
+                    row = column.row(align=True)
+
+                row.prop(context.scene.render, 'film_transparent')
+
+                if enforce_hide_render:
+                    row.prop(context.scene.M3, 'enforce_hide_render', text="Enforce hide_render")
 
     def draw_eevee_box(self, context, view, layout):
         column = layout.column(align=True)
@@ -1258,20 +1300,26 @@ class PieShading(Menu):
                 row.prop(context.scene.eevee, "volumetric_shadow_samples", text='Samples')
 
     def draw_cycles_box(self, context, view, layout):
+        cycles = context.scene.cycles
         column = layout.column(align=True)
-
+        
         row = column.split(factor=0.5, align=True)
         row.label(text='Cycles Settings')
         row.prop(context.scene.M3, 'cycles_device', expand=True)
 
         row = column.split(factor=0.33, align=True)
-        row.prop(context.scene.cycles, 'use_preview_denoising', text='Denoise')
-        row.prop(context.scene.cycles, 'use_adaptive_sampling', text='Adaptive')
-        row.prop(context.scene.cycles, 'seed')
+        row.prop(cycles, 'use_preview_denoising', text='Denoise')
+        row.prop(cycles, 'use_adaptive_sampling', text='Adaptive')
+        row.prop(cycles, 'seed')
 
         row = column.split(factor=0.5, align=True)
-        row.prop(context.scene.cycles, 'preview_samples', text='Viewport')
-        row.prop(context.scene.cycles, 'samples', text='Render')
+        row.prop(cycles, 'preview_samples', text='Viewport')
+        row.prop(cycles, 'samples', text='Render')
+
+        row = column.split(factor=0.33, align=True)
+        row.prop(cycles, 'use_fast_gi', text='Fast GI')
+        row.prop(cycles, 'ao_bounces', text="Viewport")
+        row.prop(cycles, 'ao_bounces_render', text="Render")
 
     def draw_light_adjust_box(self, context, m3, layout):
         column = layout.column(align=True)

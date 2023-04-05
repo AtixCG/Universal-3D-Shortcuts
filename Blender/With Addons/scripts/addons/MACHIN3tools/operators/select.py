@@ -108,6 +108,7 @@ class SelectHierarchy(bpy.types.Operator):
         return self.execute(context)
 
     def execute(self, context):
+        view = context.space_data
         sel = context.selected_objects
 
         for obj in sel:
@@ -118,6 +119,9 @@ class SelectHierarchy(bpy.types.Operator):
 
             for c, vis in children:
                 if self.unhide and not vis:
+                    if view.local_view and not c.local_view_get(view):
+                        c.local_view_set(view, True)
+
                     c.hide_set(False)
 
                 c.select_set(True)

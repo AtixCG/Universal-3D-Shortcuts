@@ -49,9 +49,9 @@ def draw_segment_shader(segment_shader, segment_batch):
     segment_batch.draw(segment_shader)
     glDisable(GL_BLEND)
 
-    # points = ob_2dbboxes.reshape(-1, 2).tolist()
+    # points = ob_2dbboxes.reshape((-1, 2)).tolist()
     # redraw_point_shader(context, points)
 
-    # points = ob_2dbbox_segments.reshape(-1, 2).tolist()
-    # indices = np.arange(ob_2dbbox_segments.size, dtype="i").reshape(-1, 2)
+    # points = ob_2dbbox_segments.reshape((-1, 2)).tolist()
+    # indices = np.arange(ob_2dbbox_segments.size, dtype="i").reshape((-1, 2))
     # redraw_segment_shader(context, points, indices)

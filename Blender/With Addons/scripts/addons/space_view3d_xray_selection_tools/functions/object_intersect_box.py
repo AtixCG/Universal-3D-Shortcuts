@@ -1,5 +1,7 @@
-import numpy as np
 from itertools import compress
+
+import numpy as np
+
 from .object_intersect import partition, get_ob_2dbboxes, get_vert_co_2d, get_ob_loc_co_2d, do_selection
 from .polygon_tests import point_inside_rectangles, points_inside_rectangle, segments_intersect_rectangle
 
@@ -19,7 +21,7 @@ def get_obs_mask_in_selbox(obs, obs_mask_check, depsgraph, region, rv3d, xmin, x
             bool_list.append(False)
         ob_eval.to_mesh_clear()
 
-    bools = np.fromiter(bool_list, "?")
+    bools = np.fromiter(bool_list, "?", len(bool_list))
     return bools
 
 
@@ -34,37 +36,44 @@ def select_obs_in_box(context, mode, xmin, xmax, ymin, ymax, behavior):
         mesh_obs, nonmesh_obs = partition(selectable_obs, lambda o: o.type in {'MESH', 'CURVE', 'FONT'})
         mesh_ob_count = len(mesh_obs)
 
-        # get coordinates of 2d bounding boxes of objects
-        (ob_2dbbox_xmin, ob_2dbbox_xmax, ob_2dbbox_ymin, ob_2dbbox_ymax, ob_2dbbox_points, ob_2dbbox_segments,
-         obs_mask_2dbbox_entire_clip) = get_ob_2dbboxes(mesh_obs, mesh_ob_count, region, rv3d)
+        # Get coordinates of 2d bounding boxes of objects.
+        (
+            ob_2dbbox_xmin,
+            ob_2dbbox_xmax,
+            ob_2dbbox_ymin,
+            ob_2dbbox_ymax,
+            ob_2dbbox_points,
+            ob_2dbbox_segments,
+            obs_mask_2dbbox_entire_clip,
+        ) = get_ob_2dbboxes(mesh_obs, mesh_ob_count, region, rv3d)
 
-        # check for bounding boxes intersections with selection box
-        # speed up finding overlaps or intersections by doing polygon tests on bounding boxes
+        # Check for bounding boxes intersections with selection box.
+        # Speed up finding overlaps or intersections by doing polygon tests on bounding boxes.
 
-        # ob bbox intersects selection box
+        # Ob bbox intersects selection box.
         segment_bools = segments_intersect_rectangle(ob_2dbbox_segments, xmin, xmax, ymin, ymax, prefilter=True)
         segment_bools.shape = (mesh_ob_count, 4)
         obs_mask_2dbbox_isect_selbox = np.any(segment_bools, axis=1)
 
-        # ob bbox entirely inside selection box
+        # Ob bbox bbox entirely inside selection box.
         point_bools = points_inside_rectangle(ob_2dbbox_points, xmin, xmax, ymin, ymax)
         point_bools.shape = (mesh_ob_count, 4)
         obs_mask_2dbbox_entire_in_selbox = np.all(point_bools, axis=1)
 
-        # cursor is inside ob bbox
-        obs_mask_cursor_in_2dbbox = point_inside_rectangles((xmin, ymin),
-                                                            ob_2dbbox_xmin,
-                                                            ob_2dbbox_xmax,
-                                                            ob_2dbbox_ymin,
-                                                            ob_2dbbox_ymax)
+        # Cursor is inside ob bbox.
+        obs_mask_cursor_in_2dbbox = point_inside_rectangles(
+            (xmin, ymin), ob_2dbbox_xmin, ob_2dbbox_xmax, ob_2dbbox_ymin, ob_2dbbox_ymax
+        )
 
         obs_mask_dont_check = obs_mask_2dbbox_entire_in_selbox | obs_mask_2dbbox_entire_clip
-        obs_mask_check = (obs_mask_2dbbox_isect_selbox | (obs_mask_cursor_in_2dbbox &
-                                                          ~obs_mask_2dbbox_isect_selbox)) & ~obs_mask_dont_check
+        obs_mask_check = (
+            obs_mask_2dbbox_isect_selbox | (obs_mask_cursor_in_2dbbox & ~obs_mask_2dbbox_isect_selbox)
+        ) & ~obs_mask_dont_check
 
         mesh_obs_mask_in_selbox = obs_mask_2dbbox_entire_in_selbox
         mesh_obs_mask_in_selbox[obs_mask_check] = get_obs_mask_in_selbox(
-            mesh_obs, obs_mask_check, depsgraph, region, rv3d, xmin, xmax, ymin, ymax)
+            mesh_obs, obs_mask_check, depsgraph, region, rv3d, xmin, xmax, ymin, ymax
+        )
         do_selection(mesh_obs_mask_in_selbox, mesh_obs, mode)
 
         nonmesh_ob_co_2d = get_ob_loc_co_2d(nonmesh_obs, region, rv3d)

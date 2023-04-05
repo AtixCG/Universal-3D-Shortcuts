@@ -96,3 +96,18 @@ def get_mods_as_dict(obj, types=[], skip_show_expanded=False):
         modsdict[mod.name] = get_mod_as_dict(mod, skip_show_expanded=skip_show_expanded)
 
     return modsdict
+
+
+
+def apply_mod(modname):
+    bpy.ops.object.modifier_apply(modifier=modname)
+
+
+
+def get_mod_obj(mod):
+    if mod.type in ['BOOLEAN', 'HOOK', 'LATTICE', 'DATA_TRANSFER', 'GP_MIRROR']:
+        return mod.object
+    elif mod.type == 'MIRROR':
+        return mod.mirror_object
+    elif mod.type == 'ARRAY':
+        return mod.offset_object
