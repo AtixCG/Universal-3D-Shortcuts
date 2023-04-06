@@ -1,12 +1,13 @@
-<img width="1009" alt="Universal 3D Shortcuts" src="https://user-images.githubusercontent.com/112505578/207167305-13273872-59d7-4095-b2d2-735ed4c38b28.png">
+<img width="1052" alt="Universal 3D Shortcuts" src="https://user-images.githubusercontent.com/112505578/230231807-d76d3388-9a0e-4f2d-b422-970d03221e02.png">
+
 
 Universal 3D Shortcuts is a collection of keyboard shortcuts, scripts, and plugins designed to unify your experience with 3D programs. With over 200-300 modified/considered keyboard shortcuts **per program**, Universal 3D Shortcuts aims to unify the navigation and hotkeys of various 3D programs, allowing you to focus on your work without the distraction of switching between different interfaces. Whenever possible, the original hotkeys are preserved to minimize disruption to your workflow. 
 
 
->⚡️Currently supported: Blender, Maya, Cinema 4D
+>⚡️Supported: Blender, Maya, 3DS Max, Cinema 4D
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/112505578/207413410-fce9709a-475e-4a31-9e4d-874895df218a.gif">
+<img src="https://user-images.githubusercontent.com/112505578/230243414-c9422262-ced2-4613-a2e1-21a0e7060a1d.gif">
 </p>
 
 
@@ -15,7 +16,8 @@ Universal 3D Shortcuts is a collection of keyboard shortcuts, scripts, and plugi
 The document containing the list of keyboard shortcuts can be used as a command reference to find the same command across different 3D programs. Additionally, if you prefer to customize your own navigation or keyboard shortcuts, you can easily change them in each program to better suit your workflow.
 
 <p align="center">
-<img src="https://user-images.githubusercontent.com/112505578/207441062-69beead0-ad7b-4a54-80a5-f05814fd57b5.gif" width= "100%">
+<img src="https://user-images.githubusercontent.com/112505578/230237667-2d45af32-cf04-433e-b6ba-5e51631faad7.gif" width= "100%">
+
 </p>
 
 ## Download
@@ -30,8 +32,9 @@ This project was made and tested by me alone, so mistakes are possible. The most
 
 The keyboard shortcuts are tested on the following program versions:
 * Maya 2023.2
+* 3DS Max 2023
 * Cinema 4D 2023
-* Blender 3.4 (probably won't work on older versions)
+* Blender 3.4 & 3.5 (probably won't work on older versions) 
 
 
 ## Installation
@@ -42,6 +45,15 @@ The keyboard shortcuts are tested on the following program versions:
 3. Click on ![setting](https://user-images.githubusercontent.com/112505578/207167397-4e52a0c5-6911-41f6-9bcc-382b6932c21c.png)
  icon and then "Import"
 4. Select "Universal.mhk" in downloaded folder
+
+### 3DS Max
+1. Go to File -> Preferences -> Interaction Mode. Select “Maya” and click Ok. 
+2. Drag and drop "Universal.ms" into the 3DS Max viewport
+3. In 3DS Max go to: Customize -> Hotkey Editor
+4. Click on ![setting](https://user-images.githubusercontent.com/112505578/207167397-4e52a0c5-6911-41f6-9bcc-382b6932c21c.png)
+ icon and then “Load from file”
+5. Select “Universal.hsx” in downloaded folder
+
 
 ### Cinema 4D
 1. Copy files in downloaded "Scripts" folder and paste them to: 
@@ -54,7 +66,10 @@ The keyboard shortcuts are tested on the following program versions:
 In this case, the missing functionality of Blender is augmented with the help of the third-party addons. 
 
 1. Copy the files in the "With Addons" folder and paste them to: 
-`%USERPROFILE%\AppData\Roaming\Blender Foundation\Blender\YOUR BLENDER VERSION`
+
+Win: `%USERPROFILE%\AppData\Roaming\Blender Foundation\Blender\YOUR BLENDER VERSION`
+
+Mac: `Users/*USERNAME*/Library/Application Support/Blender/`
 
 > :warning: **WARNING. This method will overwrite your Blender preferences. And restarting some addons may break shortcuts associated with the addon. You might want to create a backup before replacing files.**
 
@@ -108,4 +123,4 @@ Separate|Ctrl-Alt-Shift-S
 
 
 ## Development 
-:heart: Appreciate any feedback and suggestions. Now I am looking for a way to make keyboard shortcuts available in a wider range of Blender versions and any help is welcome :sparkles:
+:heart: Appreciate any feedback and suggestions. And if you know how to export Blender addon settings or easily write a script to install them, that would help :sparkles:
