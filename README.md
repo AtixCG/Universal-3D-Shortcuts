@@ -1,7 +1,7 @@
 <img width="1052" alt="Universal 3D Shortcuts" src="https://user-images.githubusercontent.com/112505578/230231807-d76d3388-9a0e-4f2d-b422-970d03221e02.png">
 
 
-Universal 3D Shortcuts is a collection of keyboard shortcuts, scripts, and plugins designed to unify your experience with 3D programs. With over 200-300 modified/considered keyboard shortcuts **per program**, Universal 3D Shortcuts aims to unify the navigation and hotkeys of various 3D programs, allowing you to focus on your work without the distraction of switching between different interfaces. Whenever possible, the original hotkeys are preserved to minimize disruption to your workflow. 
+Universal 3D Shortcuts is a collection of keyboard shortcuts, scripts, and plugins designed to unify your experience with 3D programs. With over **200-300** modified/considered keyboard shortcuts **per program**, Universal 3D Shortcuts aims to unify the navigation and hotkeys of various 3D programs, allowing you to focus on your work without the distraction of switching between different interfaces. Whenever possible, the original hotkeys are preserved to minimize disruption to your workflow. 
 
 
 >⚡️Supported: Blender, Maya, 3DS Max, Cinema 4D
